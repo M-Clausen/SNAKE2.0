@@ -9,7 +9,7 @@
 
 #include "math/vec2.hpp"
 
-namespace video
+namespace graphics
 {
 	class Polygon
 	{

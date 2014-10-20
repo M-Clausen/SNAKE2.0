@@ -53,10 +53,10 @@ namespace math
             inline vec4<_type> operator*(vec4<_type> &other) { return vec4<_type>(x * other.x, y * other.y, z * other.z, w + other.w); }
             inline vec4<_type> operator/(vec4<_type> &other) { return vec4<_type>(x / other.x, y / other.y, z / other.z, w + other.w); }
 
-            inline _type operator[](int i)
+            inline _type &operator[](int i)
             {
                 if(i < 0 || i >= 4)
-                    return 0;
+                    return _gl_a[0];
 
                 _gl_a[0] = x;
                 _gl_a[1] = y;

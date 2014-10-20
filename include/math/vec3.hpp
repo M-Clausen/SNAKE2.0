@@ -52,10 +52,10 @@ namespace math
             inline vec3<_type> operator*(vec3<_type> &other) { return vec3<_type>(x * other.x, y * other.y, z * other.z); }
             inline vec3<_type> operator/(vec3<_type> &other) { return vec3<_type>(x / other.x, y / other.y, z / other.z); }
 
-            inline _type operator[](int i)
+           inline _type &operator[](int i)
             {
                 if(i < 0 || i >= 3)
-                    return 0;
+                    return _gl_a[0];
 
                 _gl_a[0] = x;
                 _gl_a[1] = y;

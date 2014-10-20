@@ -47,6 +47,18 @@ namespace math
         return mat;
     }
 
+    mat4<float> orthoMat4(float left, float right, float top, float bottom, float near, float far)
+    {
+        mat4<float> mat(
+                        2 / (right - left),  0,                     0,                  -(right + left) / (right - left),
+                        0,                  2 / (top - bottom),    0,                  -(top + bottom) / (top - bottom),
+                        0,                  0,                      -1 / (far - near),  -near / (far - near),
+                        0,                  0,                      0,                 1
+                        );
+
+        return mat;
+    }
+
     mat4<float> lookAt(vec3<float> pos, vec3<float> look)
     {
         vec3<float> up(0.0f, 1.0f, 0.0f), right;
@@ -72,5 +84,15 @@ namespace math
         aux[14] = -pos.z;
 
         return view * aux;
+    }
+
+    mat4<float> translationMat4(vec4<float> pos)
+    {
+        mat4<float> translation(1, 0, 0, pos.x,
+                                0, 1, 0, pos.y,
+                                0, 0, 1, pos.z,
+                                0, 0, 0, 1);
+
+        return translation;
     }
 };

@@ -249,6 +249,7 @@ namespace math
      ************************************************/
     mat4<float> perspectiveMat4(float frustumScale, float aspect, float near, float far);
 
+    mat4<float> orthoMat4(float right, float left, float top, float bottom, float near, float far);
 
     /*************************************************
      * Generate a 4*4 view matrix.
@@ -259,6 +260,8 @@ namespace math
      * @return The view matrix.
      *************************************************/
     mat4<float> lookAt(vec3<float> pos, vec3<float> dir);
+
+    mat4<float> translationMat4(vec4<float> pos);
 };
 
 #endif // MAT4_INCLUDED

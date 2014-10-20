@@ -10,7 +10,7 @@
 #include <fstream>
 #include <stdlib.h>
 
-#include "draw.h"
+#include "render.h"
 #include "constants.h"
 
 #include "math/vec2.hpp"
@@ -34,10 +34,22 @@ struct Portal
 	}
 };
 
+struct Map_Tile
+{
+	char solid, blocks_light, data, registered_as_light_block;
+	math::mat2f rect;
+
+	Map_Tile()
+	{
+		solid = blocks_light = data = registered_as_light_block = 0;
+	}
+};
+
 class Map
 {
 	private:
-		char *base_map, *food_map;
+		Map_Tile *base_map, *food_map;
+		Map_Tile basetile_outside;
 		int width, height;
 		std::vector<Portal *> portals;
 		Game *parent_game;
@@ -48,13 +60,14 @@ class Map
 			this->width = WINDOW_WIDTH / MAP_TILE_SIZE;
 			this->height = WINDOW_HEIGHT / MAP_TILE_SIZE;
 
-			this->base_map = new char[this->width * this->height];
-			memset(this->base_map, 0, this->width * this->height);
+			this->base_map = new Map_Tile[this->width * this->height];
 
-			this->food_map = new char[this->width * this->height];
-			memset(this->food_map, 0, this->width * this->height);
+			this->food_map = new Map_Tile[this->width * this->height];
 
 			this->food_color = math::vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+			basetile_outside.solid = 1;
+			basetile_outside.data = 1;
 		}
 
 	public:
@@ -72,16 +85,19 @@ class Map
 			this->width = w;
 			this->height = h;
 
-			this->base_map = new char[this->width * this->height];
-			memset(this->base_map, 0, this->width * this->height);
+			this->base_map = new Map_Tile[this->width * this->height];
 
-			this->food_map = new char[this->width * this->height];
-			memset(this->food_map, 0, this->width * this->height);
+			this->food_map = new Map_Tile[this->width * this->height];
 			
 			this->food_color = math::vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+			basetile_outside.solid = 1;
+			basetile_outside.data = 1;
 		}
 
 		Map(std::string path);
+
+		void register_all_light_blocks();
 
 		std::vector<Portal *> &get_portals()
 		{
@@ -93,40 +109,65 @@ class Map
 			this->parent_game = game;
 		}
 
-		void set_base_tile(int x, int y, int t)
+		void set_base_tile(int x, int y, char t)
 		{
 			if(x < this->width && y < this->height && x > 0 && y > 0)
-				this->base_map[x + y * this->width] = t;
+			{
+				this->base_map[x + y * this->width].data = t;
+				if(t == 1)
+				{
+					this->base_map[x + y * this->width].solid = 1;
+					this->base_map[x + y * this->width].blocks_light = 1;
+				}
+				else
+				{
+					this->base_map[x + y * this->width].solid = 0;
+					this->base_map[x + y * this->width].blocks_light = 0;
+				}
+			}
 		}
 
-		int get_base_tile(int x, int y)
+		Map_Tile *get_base_tile(int x, int y)
 		{
 			if(x < this->width && y < this->height && x >= 0 && y >= 0)
-				return this->base_map[x + y * this->width];
+			{
+				return &(this->base_map[x + y * this->width]);
+			}
 
-			return 1;
+			std::cout << "returning 0" << std::endl;
+			return &basetile_outside;
 		}
 
-		bool set_food_tile(int x, int y, int t)
+		bool set_food_tile(int x, int y, char t)
 		{
-			if(this->base_map[x + y * this->width] != 0)
+			if(this->base_map[x + y * this->width].data != 0)
 				return false;
 
 			if(x < this->width && y < this->height && x > 0 && y > 0)
 			{
-				this->food_map[x + y * this->width] = t;
+				this->food_map[x + y * this->width].data = t;
+				if(t == 1)
+				{
+					this->food_map[x + y * this->width].solid = 1;
+					this->food_map[x + y * this->width].blocks_light = 0;
+				}
+				else
+				{
+					this->food_map[x + y * this->width].solid = 0;
+				}
+
 				return true;
 			}
 
 			return false;
 		}
 
-		int get_food_tile(int x, int y)
+		Map_Tile *get_food_tile(int x, int y)
 		{
 			if(x < this->width && y < this->height && x >= 0 && y >= 0)
-				return this->food_map[x + y * this->width];
+				return &(this->food_map[x + y * this->width]);
 
-			return 1;
+			return 0;
 		}
 
 		void add_portals(Portal p1, Portal p2, char same_map)

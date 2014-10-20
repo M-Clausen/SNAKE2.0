@@ -32,10 +32,7 @@ class Game
 	public:
 		Game() : playing(1), snake_speed(70), snake_loop(1) {};
 
-		void init()
-		{
-			this->snake_timer.start();
-		}
+		void init();
 
 		void add_map(Map *map, char cur)
 		{

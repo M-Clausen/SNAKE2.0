@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 #include "constants.h"
-#include "draw.h"
+#include "render.h"
 #include "map.h"
 #include "events.h"
 
@@ -18,6 +18,7 @@
 
 struct Snake_Elem
 {
+	math::mat2f rect;
 	int mapx, mapy, mapz;
 	char is_head, visible, direction;
 	Snake_Elem *next, *prev, *last;
@@ -27,10 +28,10 @@ class Snake
 {
 	private:
 		char direction; /* 0 - up, 1 - right, 2 - down, 3 - left */
-		Snake_Elem head, next;
 		Map *parent_map;
 
 	public:
+		Snake_Elem head, next;
 		char can_change_direction, can_teleport;
 		math::vec4f color;
 

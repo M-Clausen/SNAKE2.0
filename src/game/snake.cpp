@@ -20,14 +20,23 @@ void Snake::move()
 		}
 	}
 
-	if(this->parent_map->get_base_tile(this->next.mapx, this->next.mapy) != 0)
+
+	Map_Tile *pointer = this->parent_map->get_base_tile(this->next.mapx, this->next.mapy);
+	// printf("checking collision, wall pointer = %lx\n", (uint64_t) pointer);
+
+	// printf("checking if wall is null\n");
+	if((uint64_t) pointer != 0)
 	{
-		hit = 1;
-		ev.dat1_i = this->next.mapx;
-		ev.dat2_i = this->next.mapy;
-		ev.dat3_i = this->next.mapz;
-		ev.type = events::EVENT_TYPE_SNAKE_HIT_WALL;
-		events::fire(ev);
+		// printf("wat\n");
+		if(pointer->solid != 0)
+		{
+			hit = 1;
+			ev.dat1_i = this->next.mapx;
+			ev.dat2_i = this->next.mapy;
+			ev.dat3_i = this->next.mapz;
+			ev.type = events::EVENT_TYPE_SNAKE_HIT_WALL;
+			events::fire(ev);
+		}
 	}
 
 	if(hit == 0)
@@ -82,7 +91,7 @@ void Snake::move()
 			}
 		}
 
-		if(this->parent_map->get_food_tile(this->head.mapx, this->head.mapy) != 0 && hit == 0)
+		if(this->parent_map->get_food_tile(this->head.mapx, this->head.mapy)->solid != 0 && hit == 0)
 		{
 			ev.dat1_i = this->head.mapx;
 			ev.dat2_i = this->head.mapy;
@@ -110,6 +119,8 @@ void Snake::move()
 				break;
 		}
 	}
+
+	this->parent_map->register_all_light_blocks();
 }
 
 void Snake::add_element()
@@ -190,15 +201,15 @@ void Snake::set_direction(char dir)
 
 void Snake::render()
 {
-	math::mat2f head_rect(this->head.mapx * MAP_TILE_SIZE, this->head.mapy * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
-	video::draw::rectangle(head_rect, this->color);
+	this->head.rect = math::mat2f(this->head.mapx * MAP_TILE_SIZE, this->head.mapy * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
+	graphics::draw::rectangle(this->head.rect, this->color);
 
 	for(Snake_Elem *elem = this->head.last; elem->next != 0; elem = elem->next)
 	{
 		if(elem->visible == 1 && elem->mapz == this->head.mapz)
 		{
-			math::mat2f elem_rect(elem->mapx * MAP_TILE_SIZE, elem->mapy * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
-			video::draw::rectangle(elem_rect, this->color);
+			elem->rect = math::mat2f(elem->mapx * MAP_TILE_SIZE, elem->mapy * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
+			graphics::draw::rectangle(elem->rect, this->color);
 		}
 	}
 }
