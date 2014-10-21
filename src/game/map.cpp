@@ -135,11 +135,10 @@ void Map::render_grid()
 
 	for(int x = 0; x < this->width; ++x)
 	{
-		graphics::draw::line(math::vec2f(x * MAP_TILE_SIZE, 0.0f), math::vec2f(x * MAP_TILE_SIZE, WINDOW_HEIGHT), color);
-	}
-
-	for(int y = 0; y < this->height; ++y)
-	{
-		graphics::draw::line(math::vec2f(0, y * MAP_TILE_SIZE), math::vec2f(WINDOW_WIDTH, y * MAP_TILE_SIZE), color);
+		for(int y = 0; y < this->height; ++y)
+		{
+			graphics::draw::line(math::vec2f(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE), math::vec2f(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE + MAP_TILE_SIZE), color);
+			graphics::draw::line(math::vec2f(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE), math::vec2f(x * MAP_TILE_SIZE + MAP_TILE_SIZE, y * MAP_TILE_SIZE), color);
+		}	
 	}
 }

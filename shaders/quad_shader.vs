@@ -19,6 +19,7 @@ vec4 normal = vec4(0.0, 0.0, -1.0, 1.0);
 void attenuation(out float atten, in float distance, in float range, in float a, in float b, in float c)
 {
     atten = 1.0 / (a * distance * distance + b * distance + c) * range;
+    if(atten < 0.1) { atten = 0.0; }
 }
 
 void main()
@@ -52,7 +53,7 @@ void main()
 			lightpos = projection * lightpos;
 
 			float atten = 0.0;
-			attenuation(atten, distance(lightpos, vertexpos), lightranges[i], 0.1, 0.1, 1.0);
+			attenuation(atten, distance(lightpos, vertexpos), lightranges[i], 3, 4, 1.0);
 			vec4 vlight = normalize(lightpos - vertexpos);
 			float ndotl = max(0.0, dot(normal.xyz, vlight.xyz));
 

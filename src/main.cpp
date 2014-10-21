@@ -46,8 +46,8 @@ int main(int argc, char **argv)
 	light2.position = math::vec3f(WINDOW_WIDTH / 2 + 200, WINDOW_HEIGHT / 2 - 200, 0.1f);
 	light.color = math::vec3f(0.0f, 1.0f, 1.0f);
 	light2.color = math::vec3f(1.0f, 0.2f, 0.5f);
-	light.range = 2;
-	light2.range = 2;
+	light.range = 3;
+	light2.range = 3;
 	graphics::add_light(&light);
 	graphics::add_light(&light2);
 
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
        	int fps_ticks = fps_timer.get_ticks();
        	float avg_fps = counted_frames / (fps_ticks / 1000.f);
 	    if(avg_fps > 2000000) avg_fps = 0;
-	    // std::cout << "fps: " << avg_fps << std::endl;
+	    std::cout << "fps: " << avg_fps << std::endl;
 
 
 	    if(!quit)

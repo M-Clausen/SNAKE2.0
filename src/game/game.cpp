@@ -13,7 +13,7 @@ void Game::init()
 	this->snake_timer.start();
 	light.position = math::vec3f(0.0f, 0.0f, 0.1f);
 	light.color = math::vec3f(1.0f, 1.0f, 1.0f);
-	light.range = 3;
+	light.range = 4;
 	graphics::add_light(&light);
 
 	light_timer.start();
