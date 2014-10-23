@@ -8,6 +8,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <cmath>
 
 #include <GL/glew.h>
 #include <GL/gl.h>

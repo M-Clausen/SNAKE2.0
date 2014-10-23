@@ -47,8 +47,8 @@ namespace math
                 _mat[1] = 0;        _mat[4] = scalar;
             }
 
-            inline _type operator[](int i)               { return _mat[i]; }
-            inline _type operator()(int column, int row) { return _mat[2 * column + row]; }
+            inline _type &operator[](int i)               { return _mat[i]; }
+            inline _type &operator()(int column, int row) { return _mat[2 * column + row]; }
 
             inline mat2<_type> operator+(_type other)
             {

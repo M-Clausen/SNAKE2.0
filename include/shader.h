@@ -54,7 +54,7 @@ namespace graphics
             /***********************************************************
              * Compile the shader from source code located in files.
              ***********************************************************/
-            void compile();
+            char compile();
 
 
             /**********************************************************
@@ -63,7 +63,7 @@ namespace graphics
              * @param vertSourcePointer The vertex shader source.
              * @param fragSourcePointer The fragment shader source.
              **********************************************************/
-            void compile(const char *vertSourcePointer, const char *fragSourcePointer);
+            char compile(const char *vertSourcePointer, const char *fragSourcePointer);
 
 
             /************************************************

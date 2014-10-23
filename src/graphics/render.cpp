@@ -15,11 +15,11 @@ graphics::Shader quad_shader("shaders/quad_shader.vs", "shaders/quad_shader.fs")
 graphics::Shader line_shader("shaders/line_shader.vs", "shaders/line_shader.fs");
 
 GLuint VertexArrayID;
-GLuint rectangle_vertex_buffer;
+GLuint quad_vertex_buffer;
 GLuint line_vertex_buffer;
 GLuint light_position_buffer;
 
-static GLfloat rectangle_buffer_data[] = {
+static GLfloat quad_buffer_data[] = {
 	-1.0f,	 1.0f, 0.0f,
 	-1.0f, -1.0f, 0.0f,
 	 1.0f,	-1.0f,	0.0f,
@@ -30,8 +30,8 @@ static GLfloat rectangle_buffer_data[] = {
 };
 
 static GLfloat line_buffer_data[] = {
-	0.0f, 0.0f, 0.0f,
-	0.0f, 0.0f, 0.0f
+	-1.0f, -1.0f, 0.0f,
+	1.0f, 1.0f, 0.0f
 };
 
 float lightpositions[MAX_LIGHTS * 3];
@@ -40,6 +40,10 @@ float lightranges[MAX_LIGHTS];
 int renderlights[MAX_LIGHTS];
 
 math::vec4f light_position(0.0f, 0.0f, 0.1f, 1.0f);
+
+/* mainly for lights. transforms e.g. (500, 400) into something like (-0.2, -0.923) */
+math::vec4f window_to_unit_transform_vector;
+GLuint window_to_unit_transform_vector_uniform_id;
 
 math::mat4f translation_matrix;
 GLuint quad_translation_matrix_uniform_id;
@@ -146,17 +150,27 @@ namespace graphics
 		return 0;
 	}
 
+	float calculate_frustumscale(float fov_deg)
+	{
+	    const float deg_to_rad = 3.14159f * 2.0f / 360.0f;
+	    float fov_rad = fov_deg * deg_to_rad;
+	    return 1.0f / tan(fov_rad / 2.0f);
+	}
+
 	int init_gl()
 	{
-		quad_shader.compile();
+		if(quad_shader.compile() == -1)
+		{
+			return -1;
+		}
 
 		GLuint vertex_arr_id;
 		glGenVertexArrays(1, &vertex_arr_id);
 		glBindVertexArray(vertex_arr_id);
 
-		glGenBuffers(1, &rectangle_vertex_buffer);
-		glBindBuffer(GL_ARRAY_BUFFER, rectangle_vertex_buffer);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(rectangle_buffer_data), rectangle_buffer_data, GL_STATIC_DRAW);
+		glGenBuffers(1, &quad_vertex_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, quad_vertex_buffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quad_buffer_data), quad_buffer_data, GL_STATIC_DRAW);
 
 		glGenBuffers(1, &line_vertex_buffer);
 		glBindBuffer(GL_ARRAY_BUFFER, line_vertex_buffer);
@@ -174,7 +188,10 @@ namespace graphics
 										0, 0, 0, 1);
 										*/
 
-		projection_matrix = math::orthoMat4(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT, -1, 1);
+		projection_matrix = math::orthoMat4(-1, 1, -1, 1, -1, 1);
+		translation_matrix = math::translationMat4(math::vec4f(0.0f, 0.0f, 0.0f, 1.0f));
+		window_to_unit_transform_vector = math::vec4f(2.0f / (WINDOW_WIDTH), 2.0f / (WINDOW_HEIGHT), 1.0f, 1.0f);
+		printf("window_to_unit = (%f, %f, %f)\n", window_to_unit_transform_vector.x, window_to_unit_transform_vector.y, 1.0f);
 
 		quad_translation_matrix_uniform_id = 		quad_shader.getUniformLocation("translation");
 		quad_projection_matrix_uniform_id = 		quad_shader.getUniformLocation("projection");
@@ -185,6 +202,7 @@ namespace graphics
 		quad_lightrange_floatarray_uniform_id = 	quad_shader.getUniformLocation("lightranges");
 		quad_numlights_int_uniform_id = 			quad_shader.getUniformLocation("num_lights");
 		quad_renderlights_intarray_uniform_id = 	quad_shader.getUniformLocation("renderlights");
+		window_to_unit_transform_vector_uniform_id =quad_shader.getUniformLocation("window_to_unit");
 
 		return 0;
 	}
@@ -222,31 +240,6 @@ namespace graphics
 	{
 		void rectangle(math::mat2f &rect, math::vec4f &color, float z_index)
 		{
-			float x = rect[0]; /* | x   y | */
-			float y = rect[3]; /* |       | */
-			float w = rect[1]; /* |       | */
-			float h = rect[4]; /* | w   h | */
-
-			rectangle_buffer_data[0] = x;
-			rectangle_buffer_data[1] = y;
-			
-			rectangle_buffer_data[3] = x;
-			rectangle_buffer_data[4] = y + h;
-
-			rectangle_buffer_data[6] = x + w;
-			rectangle_buffer_data[7] = y + h;
-
-			/*********************************/
-
-			rectangle_buffer_data[9] = x;
-			rectangle_buffer_data[10] = y;
-
-			rectangle_buffer_data[12] = x + w;
-			rectangle_buffer_data[13] = y + h;
-
-			rectangle_buffer_data[15] = x + w;
-			rectangle_buffer_data[16] = y;
-
 			/* check if light should be rendered */
 			/*
 			for(int i = 0; i < num_lights; ++i)
@@ -265,15 +258,45 @@ namespace graphics
 			}
 			*/
 
-			glBufferData(GL_ARRAY_BUFFER, sizeof(rectangle_buffer_data), rectangle_buffer_data, GL_STATIC_DRAW);
+			float x = rect[0]; /* | x   y | */
+			float y = rect[3]; /* |       | */
+			float w = rect[1]; /* |       | */
+			float h = rect[4]; /* | w   h | */
+
+			/*
+			quad_buffer_data[0] = x;
+			quad_buffer_data[1] = y;
+			
+			quad_buffer_data[3] = x;
+			quad_buffer_data[4] = y + h;
+
+			quad_buffer_data[6] = x + w;
+			quad_buffer_data[7] = y + h;
+
+
+			quad_buffer_data[9] = x;
+			quad_buffer_data[10] = y;
+
+			quad_buffer_data[12] = x + w;
+			quad_buffer_data[13] = y + h;
+
+			quad_buffer_data[15] = x + w;
+			quad_buffer_data[16] = y;
+
+			glBufferData(GL_ARRAY_BUFFER, sizeof(quad_buffer_data), quad_buffer_data, GL_STATIC_DRAW);
+			*/
+			float scale_w = w / (WINDOW_WIDTH);
+			float scale_h = h / (WINDOW_HEIGHT);
+			scale_vector = math::vec4f(scale_w, scale_h, 1.0, 1.0);
+			translation_matrix = math::translationMat4(math::vec4f(2 * x / (WINDOW_WIDTH) - 1 + scale_w, 2 * y / (WINDOW_HEIGHT) - 1 + scale_h, 0.0f, 1.0f));
 
 			quad_shader.bind();
 
-			translation_matrix = math::translationMat4(math::vec4f(0.0f, 0.0f, 0.0f, 1.0f));
-
 			glUniformMatrix4fv(quad_translation_matrix_uniform_id, 1, GL_FALSE, &(translation_matrix[0]));
 			glUniformMatrix4fv(quad_projection_matrix_uniform_id, 1, GL_FALSE, &(projection_matrix[0]));
+			glUniform4fv(quad_scale_vector_uniform_id, 1, &(scale_vector[0]));
 			glUniform4fv(quad_color_vector_uniform_id, 1, &(color[0]));
+			glUniform4fv(window_to_unit_transform_vector_uniform_id, 1, &(window_to_unit_transform_vector[0]));
 			glUniform3fv(quad_lightpos_vectorarray_uniform_id, MAX_LIGHTS, lightpositions);
 			glUniform3fv(quad_lightcolor_vectorarray_uniform_id, MAX_LIGHTS, lightcolors);
 
@@ -282,7 +305,7 @@ namespace graphics
 			glUniform1i(quad_numlights_int_uniform_id, num_lights);
 
 
-			glBindBuffer(GL_ARRAY_BUFFER, rectangle_vertex_buffer);
+			glBindBuffer(GL_ARRAY_BUFFER, quad_vertex_buffer);
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(
 			   0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -334,13 +357,16 @@ namespace graphics
 
 			quad_shader.bind();
 
+			/*
 			line_buffer_data[0] = p1.x;
 			line_buffer_data[1] = p1.y;
 			line_buffer_data[3] = p2.x;
 			line_buffer_data[4] = p2.y;
-			glBindBuffer(GL_ARRAY_BUFFER, line_vertex_buffer);
 			glBufferData(GL_ARRAY_BUFFER, sizeof(line_buffer_data), line_buffer_data, GL_STATIC_DRAW);
+			*/
 
+
+			glBindBuffer(GL_ARRAY_BUFFER, line_vertex_buffer);
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(
 			   0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -351,15 +377,16 @@ namespace graphics
 			   (void*)0            // array buffer offset
 			);
 
-			scale_vector = math::vec4f(1.0f, 1.0f, 1.0f, 1.0f);
-			translation_matrix = math::translationMat4(math::vec4f(0.0f, 0.0f, 0.0f, 1.0f));
+			float scale_w = width / (WINDOW_WIDTH);
+			float scale_h = height / (WINDOW_HEIGHT);
+			scale_vector = math::vec4f(scale_w, scale_h, 1.0, 1.0);
+			translation_matrix = math::translationMat4(math::vec4f(2 * low_x / (WINDOW_WIDTH) - 1 + scale_w, 2 * low_y / (WINDOW_HEIGHT) - 1 + scale_h, 0.0f, 1.0f));
 
 			glUniformMatrix4fv(quad_translation_matrix_uniform_id, 1, GL_FALSE, &(translation_matrix[0]));
 			glUniformMatrix4fv(quad_projection_matrix_uniform_id, 1, GL_FALSE, &(projection_matrix[0]));
 			glUniform4fv(quad_scale_vector_uniform_id, 1, &(scale_vector[0]));
 			glUniform4fv(quad_color_vector_uniform_id, 1, &(color[0]));
 			 
-			// Draw the triangle !
 			glDrawArrays(GL_LINES, 0, 2);
 			glDisableVertexAttribArray(0);
 			quad_shader.unbind();

@@ -1,5 +1,5 @@
 CC 		= g++
-CFLAGS 	= -c -I./include -std=c++11
+CFLAGS 	= -c -I./include -std=c++11 -O2
 
 LINKER 	= gcc
 BIN 	= snake

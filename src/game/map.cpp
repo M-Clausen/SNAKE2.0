@@ -93,8 +93,19 @@ void Map::render_base()
 		{
 			if(this->base_map[x + this->width * y].solid == 1)
 			{
-				this->base_map[x + this->width * y].rect = math::mat2f(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
-				graphics::draw::rectangle(this->base_map[x + this->width * y].rect, tile_color);
+				math::mat2f rect = this->base_map[x + this->width * y].rect = math::mat2f(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
+				rect[1] /= 2;
+				rect[4] /= 2;
+				graphics::draw::rectangle(rect, tile_color);
+
+				rect[0] += rect[1];
+				graphics::draw::rectangle(rect, tile_color);
+
+				rect[3] += rect[4];
+				graphics::draw::rectangle(rect, tile_color);
+
+				rect[0] -= rect[1];
+				graphics::draw::rectangle(rect, tile_color);
 			}
 		}
 	}
@@ -109,8 +120,19 @@ void Map::render_food()
 		{
 			if(this->food_map[x + this->width * y].data == 1)
 			{
-				this->food_map[x + this->width * y].rect = math::mat2f(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
-				graphics::draw::rectangle(this->food_map[x + this->width * y].rect, this->food_color);
+				math::mat2f rect = this->food_map[x + this->width * y].rect = math::mat2f(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
+				rect[1] /= 2;
+				rect[4] /= 2;
+				graphics::draw::rectangle(rect, this->food_color);
+
+				rect[0] += rect[1];
+				graphics::draw::rectangle(rect, this->food_color);
+
+				rect[3] += rect[4];
+				graphics::draw::rectangle(rect, this->food_color);
+
+				rect[0] -= rect[1];
+				graphics::draw::rectangle(rect, this->food_color);
 			}
 		}
 	}

@@ -13,7 +13,7 @@ namespace io
 	void init()
 	{
 		keystates = new char[128]; /* ascii and shit */
-		memset(keystates, 128, 0);
+		memset(keystates, 0, 128);
 	}
 
 	void destroy()

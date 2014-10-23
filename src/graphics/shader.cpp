@@ -6,7 +6,7 @@
 
 namespace graphics
 {
-    void Shader::compile()
+    char Shader::compile()
     {
         if(_id != 0)
             glDeleteProgram(_id);
@@ -49,7 +49,7 @@ namespace graphics
         glGetShaderiv(vertShaderID, GL_INFO_LOG_LENGTH, &infoLogLen);
         std::vector<char> vertShaderErrMsgs(infoLogLen);
         glGetShaderInfoLog(vertShaderID, infoLogLen, NULL, &vertShaderErrMsgs[0]);
-        fprintf(stdout, "%s\n", &vertShaderErrMsgs[0]);
+        // fprintf(stdout, "%s\n", &vertShaderErrMsgs[0]);
 
         // Compile Fragment Shader
         char const *fragSourcePointer = fragShaderCode.c_str();
@@ -62,7 +62,7 @@ namespace graphics
         glGetShaderiv(fragShaderID, GL_INFO_LOG_LENGTH, &infoLogLen);
         std::vector<char> fragShaderErrMsgs(infoLogLen);
         glGetShaderInfoLog(fragShaderID, infoLogLen, NULL, &fragShaderErrMsgs[0]);
-        fprintf(stdout, "%s\n", &fragShaderErrMsgs[0]);
+        // fprintf(stdout, "%s\n", &fragShaderErrMsgs[0]);
 
         // Link the program
         GLuint progID = glCreateProgram();
@@ -74,6 +74,7 @@ namespace graphics
         glGetProgramiv(progID, GL_LINK_STATUS, &Result);
         glGetProgramiv(progID, GL_INFO_LOG_LENGTH, &infoLogLen);
         std::vector<char> progErrMsgs(std::max(infoLogLen, int(1)));
+
         glGetProgramInfoLog(progID, infoLogLen, NULL, &progErrMsgs[0]);
         fprintf(stdout, "%s\n", &progErrMsgs[0]);
 
@@ -81,9 +82,17 @@ namespace graphics
         glDeleteShader(fragShaderID);
 
         _id = progID;
+
+
+        if(progErrMsgs.size() > 1)
+        {
+            return -1;
+        }
+
+        return 0;
     }
 
-    void Shader::compile(const char *vertSourcePointer, const char *fragSourcePointer)
+    char Shader::compile(const char *vertSourcePointer, const char *fragSourcePointer)
     {
         if(_id != 0)
             glDeleteProgram(_id);
@@ -134,6 +143,13 @@ namespace graphics
         glDeleteShader(fragShaderID);
 
         _id = progID;
+
+
+        if(progErrMsgs.size() > 1)
+        {
+            return -1;
+        }
+        return 0;
     }
 
     GLuint Shader::getUniformLocation(const char *uniformName)

@@ -56,7 +56,11 @@ int main(int argc, char **argv)
 	graphics::set_window_title(WINDOW_TITLE);
 	graphics::set_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
 	graphics::init_sdl();
-	graphics::init_gl();
+	if(graphics::init_gl() == -1)
+	{
+		graphics::destroy();
+    	return -1;
+	}
 
 	io::init();
 	io::add_keyhandler(key_handler);

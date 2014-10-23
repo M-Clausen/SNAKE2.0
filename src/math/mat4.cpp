@@ -40,7 +40,7 @@ namespace math
         mat4<float> mat(
                         frustumScale / aspect,      0,                          0,                              0,
                         0,                          frustumScale,               0,                              0,
-                        0,                          0,                         (far + near) / (near - far),     (2 * far * near) / (near - far),
+                        0,                          0,                         -(far + near) / (near - far),    -(2 * far * near) / (near - far),
                         0,                          0,                         -1,                              0
                         );
 

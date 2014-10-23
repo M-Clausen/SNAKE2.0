@@ -208,8 +208,20 @@ void Snake::render()
 	{
 		if(elem->visible == 1 && elem->mapz == this->head.mapz)
 		{
-			elem->rect = math::mat2f(elem->mapx * MAP_TILE_SIZE, elem->mapy * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
-			graphics::draw::rectangle(elem->rect, this->color);
+			math::mat2f rect = elem->rect = math::mat2f(elem->mapx * MAP_TILE_SIZE, elem->mapy * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
+			
+			rect[1] /= 2;
+			rect[4] /= 2;
+			graphics::draw::rectangle(rect, this->color);
+
+			rect[0] += rect[1];
+			graphics::draw::rectangle(rect, this->color);
+
+			rect[3] += rect[4];
+			graphics::draw::rectangle(rect, this->color);
+
+			rect[0] -= rect[1];
+			graphics::draw::rectangle(rect, this->color);
 		}
 	}
 }
