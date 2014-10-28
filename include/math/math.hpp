@@ -12,6 +12,8 @@
 #include "math/mat3.hpp"
 #include "math/mat4.hpp"
 
+#define PI 3.14159265
+
 namespace math
 {
 	char line_intersects_line(math::vec2f l1p1, math::vec2f l1p2, math::vec2f l2p1, math::vec2f l2p2);

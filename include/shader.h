@@ -23,7 +23,7 @@ namespace graphics
     class Shader
     {
         private:
-            char *_vsPath, *_fsPath;
+            char *_vsPath, *_fsPath, *_gsPath, compiled;
             GLuint _id;
 
         public:
@@ -34,7 +34,7 @@ namespace graphics
             {
                 _vsPath = (char*) "";
                 _fsPath = (char*) "";
-                _id = 0;
+                _id = compiled = 0;
             }
 
             /****************************************************
@@ -47,7 +47,7 @@ namespace graphics
             {
                 _vsPath = (char *) v;
                 _fsPath = (char *) f;
-                _id = 0;
+                _id = compiled = 0;
             }
 
 
@@ -64,6 +64,8 @@ namespace graphics
              * @param fragSourcePointer The fragment shader source.
              **********************************************************/
             char compile(const char *vertSourcePointer, const char *fragSourcePointer);
+
+            char addGeometryShader(const char *geoSourcePointer);
 
 
             /************************************************
@@ -117,6 +119,11 @@ namespace graphics
             void unbind()
             {
                 glUseProgram(0);
+            }
+
+            char getIsCompiled()
+            {
+                return compiled;
             }
     };
 }

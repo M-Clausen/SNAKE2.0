@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <stdlib.h>
+#include <time.h>
 
 #include <SDL2/SDL.h>
 
@@ -23,13 +24,10 @@ SDL_Event sdl_event;
 
 Game game;
 
-Timer fps_timer;
-Timer cap_timer;
+Timer fps_timer, cap_timer, light_timer;
 int counted_frames = 0;
 
 Snake snake(2, 2);
-Map map("levels/1/maps/1.map");
-Map map2("levels/1/maps/2.map");
 
 Portal portal1;
 Portal portal2;
@@ -41,18 +39,11 @@ void key_handler(io::IO_KEYEVENT ev, char key)
 
 int main(int argc, char **argv)
 {
-	graphics::Light light, light2;
-	light.position = math::vec3f(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 0.1f);
-	light2.position = math::vec3f(WINDOW_WIDTH / 2 + 200, WINDOW_HEIGHT / 2 - 200, 0.1f);
-	light.color = math::vec3f(0.0f, 1.0f, 1.0f);
-	light2.color = math::vec3f(1.0f, 0.2f, 0.5f);
-	light.range = 3;
-	light2.range = 3;
-	graphics::add_light(&light);
-	graphics::add_light(&light2);
-
 	std::cout << "Starting SNAKE 2.0" << std::endl;
 
+	srand (time(NULL));
+
+	graphics::init_shadowmap_rotation_matrices();
 	graphics::set_window_title(WINDOW_TITLE);
 	graphics::set_window_size(WINDOW_WIDTH, WINDOW_HEIGHT);
 	graphics::init_sdl();
@@ -62,10 +53,23 @@ int main(int argc, char **argv)
     	return -1;
 	}
 
+	graphics::Light light, light2;
+	light.position = math::vec3f(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, -0.2f);
+	light2.position = math::vec3f(WINDOW_WIDTH / 2 + 200, WINDOW_HEIGHT / 2 - 200, -0.2f);
+	light.color = math::vec3f(0.0f, 1.0f, 1.0f);
+	light2.color = math::vec3f(1.0f, 0.2f, 0.5f);
+	light.range = 3;
+	light2.range = 3;
+	graphics::add_light(&light, 1);
+	graphics::add_light(&light2, 1);
+
 	io::init();
 	io::add_keyhandler(key_handler);
 
 	fps_timer.start();
+
+	Map map("levels/1/maps/1.map");
+	Map map2("levels/1/maps/2.map");
 
 	while(!map.set_food_tile(rand() % (map.get_width() - 1), rand() % (map.get_height() - 1), 1)) {};
 	game.add_map(&map, 1);
@@ -88,6 +92,8 @@ int main(int argc, char **argv)
 	snake.add_element();
 	game.add_snake(&snake, 1);
 	game.init();
+
+	light_timer.start();
 
 	bool quit = false;
 	while(!quit)
@@ -130,6 +136,15 @@ int main(int argc, char **argv)
 	    if(frame_ticks < TICKS_PER_FRAME)
 	    {
 	        SDL_Delay(TICKS_PER_FRAME - frame_ticks);
+	    }
+
+	    if(light_timer.get_ticks() > 1000)
+	    {
+	    	float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+	    	float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+	    	float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+	    	light.color = math::vec3f(r, g, b);
+	    	light_timer.start();
 	    }
     }
 

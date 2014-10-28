@@ -35,14 +35,37 @@ namespace math
         return rotX * rotY * rotZ;
     }
 
-    mat4<float> perspectiveMat4(float frustumScale, float aspect, float near, float far)
+    mat4<float> perspectiveMat4(float l, float r, float t, float b, float n, float f)
     {
+        /*
         mat4<float> mat(
-                        frustumScale / aspect,      0,                          0,                              0,
-                        0,                          frustumScale,               0,                              0,
-                        0,                          0,                         -(far + near) / (near - far),    -(2 * far * near) / (near - far),
-                        0,                          0,                         -1,                              0
+                        2 * near / (right - left),  0,                          0,                              0,
+                        0,                          2 * near / (top - bottom),  0,                              0,
+                        0,                          0,                          -(far + near) / (far - near),   -(2 * far * near) / (far - near),
+                        0,                          0,                          -1,                             0
                         );
+                        */
+
+        mat4<float> mat;
+        mat(0, 0) = 2 * n / (r - l);
+        mat(0, 1) = 0;
+        mat(0, 2) = 0;
+        mat(0, 3) = 0;
+     
+        mat(1, 0) = 0;
+        mat(1, 1) = 2 * n / (t - b);
+        mat(1, 2) = 0;
+        mat(1, 3) = 0;
+     
+        mat(2, 0) = (r + l) / (r - l);
+        mat(2, 1) = (t + b) / (t - b);
+        mat(2, 2) = -(f + n) / (f - n);
+        mat(2, 3) = -1;
+     
+        mat(3, 0) = 0;
+        mat(3, 1) = 0;
+        mat(3, 2) = -2 * f * n / (f - n);
+        mat(3, 3) = 0;
 
         return mat;
     }

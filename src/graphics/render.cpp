@@ -13,20 +13,116 @@ std::string title("Window");
 
 graphics::Shader quad_shader("shaders/quad_shader.vs", "shaders/quad_shader.fs");
 graphics::Shader line_shader("shaders/line_shader.vs", "shaders/line_shader.fs");
+graphics::Shader shadowmap_shader("shaders/shadowmap.vs", "shaders/shadowmap.fs");
 
 GLuint VertexArrayID;
 GLuint quad_vertex_buffer;
+GLuint quad_normal_buffer;
 GLuint line_vertex_buffer;
 GLuint light_position_buffer;
 
 static GLfloat quad_buffer_data[] = {
-	-1.0f,	 1.0f, 0.0f,
-	-1.0f, -1.0f, 0.0f,
-	 1.0f,	-1.0f,	0.0f,
+	// top face
+	//*
+	-1.0f,	 1.0f, 	2.0f,
+	-1.0f,  -1.0f,  2.0f,
+	 1.0f,	-1.0f,	2.0f,
 
-	 1.0f,	 1.0f, 0.0f,
-	-1.0f,	 1.0f,	0.0f,
-	 1.0f,	-1.0f,	0.0f
+	 1.0f,	 1.0f, 	2.0f,
+	-1.0f,	 1.0f,	2.0f,
+	 1.0f,	-1.0f,	2.0f,
+	 //*/
+
+	//*
+	// right face
+	1.0f, 	-1.0f, 1.0f,
+	1.0f, 	-1.0f,	2.0f,
+	1.0f, 	 1.0f, 1.0f,
+
+	1.0f,	-1.0f, 	2.0f,
+	1.0f, 	 1.0f, 1.0f,
+	1.0f, 	 1.0f, 	2.0f,
+
+	// back face(aka bottom)
+	-1.0f,	 1.0f, 	2.0f,
+	-1.0f,  -1.0f, 	2.0f,
+	 1.0f,	-1.0f,	2.0f,
+
+	 1.0f,	 1.0f, 	2.0f,
+	-1.0f,	 1.0f,	2.0f,
+	 1.0f,	-1.0f,	2.0f,
+
+
+	// left face
+	-1.0f, 	-1.0f, 1.0f,
+	-1.0f, 	-1.0f,	2.0f,
+	-1.0f, 	 1.0f, 1.0f,
+
+	-1.0f,	-1.0f, 	2.0f,
+	-1.0f, 	 1.0f, 1.0f,
+	-1.0f, 	 1.0f, 	2.0f,
+
+	// posY
+	-1.0f, 	1.0f, 	1.0f,
+	-1.0f, 	1.0f, 	2.0f,
+	1.0f,	1.0f,	1.0f,
+
+	1.0f, 1.0f, 1.0f,
+	1.0f, 1.0f, 2.0f,
+	-1.0f, 1.0f, 2.0f,
+
+	// negY
+	-1.0f, 	-1.0f, 	1.0f,
+	-1.0f, 	-1.0f, 	2.0f,
+	1.0f,	-1.0f,	1.0f,
+
+	1.0f, -1.0f, 1.0f,
+	1.0f, -1.0f, 2.0f,
+	-1.0f, -1.0f, 2.0f
+};
+
+static GLfloat quad_normal_buffer_data[] = {
+	0.0f, 0.0f, -1.0f,
+	0.0f, 0.0f, -1.0f,
+	0.0f, 0.0f, -1.0f,
+	0.0f, 0.0f, -1.0f,
+	0.0f, 0.0f, -1.0f,
+	0.0f, 0.0f, -1.0f,
+
+	1.0f, 0.0f, 0.0f,
+	1.0f, 0.0f, 0.0f,
+	1.0f, 0.0f, 0.0f,
+	1.0f, 0.0f, 0.0f,
+	1.0f, 0.0f, 0.0f,
+	1.0f, 0.0f, 0.0f,
+
+	0.0f, 0.0f, 1.0f,
+	0.0f, 0.0f, 1.0f,
+	0.0f, 0.0f, 1.0f,
+	0.0f, 0.0f, 1.0f,
+	0.0f, 0.0f, 1.0f,
+	0.0f, 0.0f, 1.0f,
+
+	-1.0f, 0.0f, 0.0f,
+	-1.0f, 0.0f, 0.0f,
+	-1.0f, 0.0f, 0.0f,
+	-1.0f, 0.0f, 0.0f,
+	-1.0f, 0.0f, 0.0f,
+	-1.0f, 0.0f, 0.0f,
+
+	0.0f, 1.0f, 0.0f,
+	0.0f, 1.0f, 0.0f,
+	0.0f, 1.0f, 0.0f,
+	0.0f, 1.0f, 0.0f,
+	0.0f, 1.0f, 0.0f,
+	0.0f, 1.0f, 0.0f,
+
+	0.0f, -1.0f, 0.0f,
+	0.0f, -1.0f, 0.0f,
+	0.0f, -1.0f, 0.0f,
+	0.0f, -1.0f, 0.0f,
+	0.0f, -1.0f, 0.0f,
+	0.0f, -1.0f, 0.0f
 };
 
 static GLfloat line_buffer_data[] = {
@@ -38,21 +134,48 @@ float lightpositions[MAX_LIGHTS * 3];
 float lightcolors[MAX_LIGHTS * 3];
 float lightranges[MAX_LIGHTS];
 int renderlights[MAX_LIGHTS];
+GLuint shadowmaps[MAX_LIGHTS * 4];
+float *shadowmap_translation_matrices[MAX_LIGHTS];
+float *shadowmap_rotation_matrices[4];
+float *shadowmap_projection_matrices[MAX_LIGHTS];
+
+float *light_block_rects_uniform_array[MAX_LIGHT_BLOCKS];
+GLuint light_block_rects_uniform_array_id;
+GLuint num_light_block_rects_uniform_id;
 
 math::vec4f light_position(0.0f, 0.0f, 0.1f, 1.0f);
 
 /* mainly for lights. transforms e.g. (500, 400) into something like (-0.2, -0.923) */
 math::vec4f window_to_unit_transform_vector;
-GLuint window_to_unit_transform_vector_uniform_id;
+GLuint quad_window_to_unit_uniform_id;
+GLuint smshader_window_to_unit_uniform_id;
 
 math::mat4f translation_matrix;
 GLuint quad_translation_matrix_uniform_id;
+GLuint smshader_translation_matrix_uniform_id;
+
+math::mat4f camera_translation_matrix;
+GLuint quad_camera_translation_matrix_uniform_id;
+GLuint smshader_camera_translation_matrix_uniform_id;
+
+math::mat4f camera_rotation_matrix;
+GLuint quad_camera_rotation_matrix_uniform_id;
+GLuint smshader_camera_rotation_matrix_uniform_id;
 
 math::mat4f projection_matrix;
 GLuint quad_projection_matrix_uniform_id;
+GLuint smshader_projection_matrix_uniform_id;
+
+math::mat4f shadowmap_projection_matrix;
+// GLuint quad_shadowmap_projection_matrix_uniform_id;
+
+math::mat4f rotation_matrix;
+GLuint quad_rotation_matrix_uniform_id;
+GLuint smshader_rotation_matrix_uniform_id;
 
 math::vec4f scale_vector;
 GLuint quad_scale_vector_uniform_id;
+GLuint smshader_scale_vector_uniform_id;
 
 GLuint quad_color_vector_uniform_id;
 
@@ -62,9 +185,23 @@ GLuint quad_lightrange_floatarray_uniform_id;
 GLuint quad_numlights_int_uniform_id;
 GLuint quad_renderlights_intarray_uniform_id;
 
+GLuint smshader_lightcolor_vectorarray_uniform_id;
+GLuint smshader_lightpos_vectorarray_uniform_id;
+GLuint smshader_lightrange_floatarray_uniform_id;
+GLuint smshader_numlights_int_uniform_id;
+GLuint smshader_renderlights_intarray_uniform_id;
+
+GLuint quad_depthbuffer_int_uniform_id;
+GLuint quad_num_depthbuffer_int_uniform_id;
+GLuint quad_shadowmaps_gluintarray_uniform_id;
+
+math::vec2f near_far_vector;
+GLuint smshader_near_far_vector_uniform_id;
+
 /*********************************************/
 
 std::vector<math::mat2f *> light_block_rects;
+std::vector<graphics::Rectangle *> rectangles;
 
 namespace graphics
 {
@@ -84,16 +221,83 @@ namespace graphics
 		win_height = h;
 	}
 
-	void add_light(Light *l)
+	void add_light(Light *l, char gen_framebuffer)
 	{
 		lights.push_back(l);
 		num_lights = lights.size();
+
+		/*
+		if(gen_framebuffer == 1)
+		{
+			std::cout << "generating shadowmap shit" << std::endl;
+			printf("glGenFramebuffer = %p\n", glGenFramebuffers);
+			l->shadowmap_aspectratio = 1 / 200;
+			glGenFramebuffers(1, &(l->shadowmap_framebuffer));
+			std::cout << "generated framebuffer" << std::endl;
+			glBindFramebuffer(GL_FRAMEBUFFER, l->shadowmap_framebuffer);
+
+			// generate four textures, so everything around the point light can be covered
+			glGenTextures(1, &l->shadowmap_texture_up);
+			glBindTexture(GL_TEXTURE_2D, l->shadowmap_texture_up);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			std::cout << "generating texture 1 with ID #" << l->shadowmap_texture_up << std::endl;
+
+			glGenTextures(1, &l->shadowmap_texture_right);
+			glBindTexture(GL_TEXTURE_2D, l->shadowmap_texture_right);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			std::cout << "generating texture 2 with ID #" << l->shadowmap_texture_right << std::endl;
+
+			glGenTextures(1, &l->shadowmap_texture_down);
+			glBindTexture(GL_TEXTURE_2D, l->shadowmap_texture_down);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			std::cout << "generating texture 3 with ID #" << l->shadowmap_texture_down << std::endl;
+
+			glGenTextures(1, &l->shadowmap_texture_left);
+			glBindTexture(GL_TEXTURE_2D, l->shadowmap_texture_left);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			std::cout << "generating texture 4 with ID #" << l->shadowmap_texture_left << std::endl;
+
+			// add textures to framebuffer
+			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, l->shadowmap_texture_up, 0);
+			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, l->shadowmap_texture_right, 0);
+			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, l->shadowmap_texture_down, 0);
+			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, l->shadowmap_texture_left, 0);
+
+			GLenum drawbuffers[4] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+			glDrawBuffers(4, drawbuffers);
+
+			shadowmaps[(num_lights - 1) * 4 + 0] = l->shadowmap_texture_up;
+			shadowmaps[(num_lights - 1) * 4 + 1] = l->shadowmap_texture_right;
+			shadowmaps[(num_lights - 1) * 4 + 2] = l->shadowmap_texture_down;
+			shadowmaps[(num_lights - 1) * 4 + 3] = l->shadowmap_texture_left;
+
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+		*/
 	}
 
 	void add_light_block_rect(math::mat2f *rect)
 	{
+		std::cout << "add light block " << light_block_rects.size() << std::endl;
 		if(rect)
 			light_block_rects.push_back(rect);
+
+		for(int i = 0; i < light_block_rects.size(); ++i)
+		{
+			light_block_rects_uniform_array[i] = &((*rect)[0]);
+		}
+	
+		quad_shader.bind();
+		glUniformMatrix2fv(light_block_rects_uniform_array_id, light_block_rects.size(), GL_FALSE, light_block_rects_uniform_array[0]);
+		glUniform1i(num_light_block_rects_uniform_id, light_block_rects.size());
 	}
 
 	void clear_light_block_rects()
@@ -164,6 +368,11 @@ namespace graphics
 			return -1;
 		}
 
+		if(shadowmap_shader.compile() == -1 || shadowmap_shader.addGeometryShader("shaders/shadowmap.gs") == -1)
+		{
+			return -1;
+		}
+
 		GLuint vertex_arr_id;
 		glGenVertexArrays(1, &vertex_arr_id);
 		glBindVertexArray(vertex_arr_id);
@@ -171,6 +380,10 @@ namespace graphics
 		glGenBuffers(1, &quad_vertex_buffer);
 		glBindBuffer(GL_ARRAY_BUFFER, quad_vertex_buffer);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(quad_buffer_data), quad_buffer_data, GL_STATIC_DRAW);
+
+		glGenBuffers(1, &quad_normal_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, quad_normal_buffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quad_normal_buffer_data), quad_normal_buffer_data, GL_STATIC_DRAW);
 
 		glGenBuffers(1, &line_vertex_buffer);
 		glBindBuffer(GL_ARRAY_BUFFER, line_vertex_buffer);
@@ -188,13 +401,27 @@ namespace graphics
 										0, 0, 0, 1);
 										*/
 
-		projection_matrix = math::orthoMat4(-1, 1, -1, 1, -1, 1);
+		projection_matrix = math::orthoMat4(-1, 1, -1, 1, 1, 5);
+
+		//*
+		float n = 0.01f;
+		float t = tan(90 / 2 * (DEGTORAD)) * n;
+		float b = -t;
+	    float r = t * 1;
+	    float l = b * 1;
+		shadowmap_projection_matrix = math::perspectiveMat4(l, r, -t, -b, n, n + 4);
+		std::cout << "top: " << t << std::endl;
+		//*/
+
+		rotation_matrix = math::rotationMat4(0.0f, math::vec3f(0.0f, 0.0f, 0.0f));
+
 		translation_matrix = math::translationMat4(math::vec4f(0.0f, 0.0f, 0.0f, 1.0f));
 		window_to_unit_transform_vector = math::vec4f(2.0f / (WINDOW_WIDTH), 2.0f / (WINDOW_HEIGHT), 1.0f, 1.0f);
 		printf("window_to_unit = (%f, %f, %f)\n", window_to_unit_transform_vector.x, window_to_unit_transform_vector.y, 1.0f);
 
-		quad_translation_matrix_uniform_id = 		quad_shader.getUniformLocation("translation");
+		quad_translation_matrix_uniform_id = 		quad_shader.getUniformLocation("model_translation");
 		quad_projection_matrix_uniform_id = 		quad_shader.getUniformLocation("projection");
+		quad_rotation_matrix_uniform_id	=			quad_shader.getUniformLocation("model_rotation");
 		quad_scale_vector_uniform_id = 				quad_shader.getUniformLocation("scale");
 		quad_color_vector_uniform_id = 				quad_shader.getUniformLocation("received_color");
 		quad_lightcolor_vectorarray_uniform_id = 	quad_shader.getUniformLocation("lightcolors");
@@ -202,7 +429,24 @@ namespace graphics
 		quad_lightrange_floatarray_uniform_id = 	quad_shader.getUniformLocation("lightranges");
 		quad_numlights_int_uniform_id = 			quad_shader.getUniformLocation("num_lights");
 		quad_renderlights_intarray_uniform_id = 	quad_shader.getUniformLocation("renderlights");
-		window_to_unit_transform_vector_uniform_id =quad_shader.getUniformLocation("window_to_unit");
+		quad_window_to_unit_uniform_id =			quad_shader.getUniformLocation("window_to_unit");
+		quad_camera_translation_matrix_uniform_id = quad_shader.getUniformLocation("camera_translation");
+		quad_camera_rotation_matrix_uniform_id =	quad_shader.getUniformLocation("camera_rotation");
+		quad_depthbuffer_int_uniform_id = 			quad_shader.getUniformLocation("depthbuffer");
+		quad_num_depthbuffer_int_uniform_id = 		quad_shader.getUniformLocation("num_depthbuffer");
+		quad_shadowmaps_gluintarray_uniform_id = 	quad_shader.getUniformLocation("shadowmaps");
+		light_block_rects_uniform_array_id = 		quad_shader.getUniformLocation("lightblock_rects");
+		num_light_block_rects_uniform_id = 			quad_shader.getUniformLocation("num_lightblock_rects");
+
+		smshader_translation_matrix_uniform_id = 		shadowmap_shader.getUniformLocation("model_translation");
+		smshader_projection_matrix_uniform_id = 		shadowmap_shader.getUniformLocation("projection");
+		smshader_rotation_matrix_uniform_id	=			shadowmap_shader.getUniformLocation("model_rotation");
+		smshader_scale_vector_uniform_id = 				shadowmap_shader.getUniformLocation("scale");
+		smshader_window_to_unit_uniform_id =			shadowmap_shader.getUniformLocation("window_to_unit");
+		smshader_camera_translation_matrix_uniform_id = shadowmap_shader.getUniformLocation("camera_translation");
+		smshader_near_far_vector_uniform_id = 			shadowmap_shader.getUniformLocation("near_far");
+
+		glEnable(GL_DEPTH_TEST);
 
 		return 0;
 	}
@@ -223,87 +467,75 @@ namespace graphics
 
 			lightranges[i] = lights[i]->range;
 			renderlights[i] = 1;
+
+			/*
+			if(i == 1)
+			{
+				math::vec4f translate = math::vec4f(-lights[i]->position.x, -lights[i]->position.y, lights[i]->position.z, 1.0f);
+				// math::vec4f translate(0.0f, 0.0f, -2.0f, 1.0f);
+				translate =  translate * window_to_unit_transform_vector;
+				
+				translate.x /= 2;
+				translate.x += 0.645f;
+				translate.y /= 2;
+				translate.y += 0.23f;
+				
+				// camera_translation_matrix = math::translationMat4(translate);
+				// camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, -1.0f));
+			}
+			//*/
 		}
 	}
 
-	void render()
+	void render_rect(Rectangle *rect, math::mat4f &projection, math::mat4f &camera_translate, math::mat4f &camera_rotation, char shadowmap = 0, int num_depthbuffer = 0)
 	{
-		SDL_GL_SwapWindow(window);
-	}
+		float x = rect->rect[0]; /* | x   y | */
+		float y = rect->rect[3]; /* |       | */
+		float w = rect->rect[1]; /* |       | */
+		float h = rect->rect[4]; /* | w   h | */
+		math::vec4f color = rect->color;
+		float height = rect->height;
 
-	void destroy()
-	{
-		free(window);
-	}
+		float scale_w = w / (WINDOW_WIDTH);
+		float scale_h = h / (WINDOW_HEIGHT);
+		scale_vector = math::vec4f(scale_w, scale_h, height, 1.0);
+		translation_matrix = math::translationMat4(math::vec4f(2 * x / (WINDOW_WIDTH) - 1 + scale_w, 2 * y / (WINDOW_HEIGHT) - 1 + scale_h, -height, 1.0f));
 
-	namespace draw
-	{
-		void rectangle(math::mat2f &rect, math::vec4f &color, float z_index)
-		{
-			/* check if light should be rendered */
-			/*
-			for(int i = 0; i < num_lights; ++i)
-			{
-				math::vec2f lpos(lights[i]->position.x, lights[i]->position.y);
-				math::vec2f rpos(x + w / 2, y + h / 2);
-
-				renderlights[i] = 1;
-				for(int i_blocks = 0; i_blocks < light_block_rects.size(); ++i_blocks)
-				 {
-					if(math::line_intersects_rect(lpos, rpos, *(light_block_rects[i_blocks])) == 1)
-					{
-						renderlights[i] = 0;
-					}
-				}
-			}
-			*/
-
-			float x = rect[0]; /* | x   y | */
-			float y = rect[3]; /* |       | */
-			float w = rect[1]; /* |       | */
-			float h = rect[4]; /* | w   h | */
-
-			/*
-			quad_buffer_data[0] = x;
-			quad_buffer_data[1] = y;
-			
-			quad_buffer_data[3] = x;
-			quad_buffer_data[4] = y + h;
-
-			quad_buffer_data[6] = x + w;
-			quad_buffer_data[7] = y + h;
-
-
-			quad_buffer_data[9] = x;
-			quad_buffer_data[10] = y;
-
-			quad_buffer_data[12] = x + w;
-			quad_buffer_data[13] = y + h;
-
-			quad_buffer_data[15] = x + w;
-			quad_buffer_data[16] = y;
-
-			glBufferData(GL_ARRAY_BUFFER, sizeof(quad_buffer_data), quad_buffer_data, GL_STATIC_DRAW);
-			*/
-			float scale_w = w / (WINDOW_WIDTH);
-			float scale_h = h / (WINDOW_HEIGHT);
-			scale_vector = math::vec4f(scale_w, scale_h, 1.0, 1.0);
-			translation_matrix = math::translationMat4(math::vec4f(2 * x / (WINDOW_WIDTH) - 1 + scale_w, 2 * y / (WINDOW_HEIGHT) - 1 + scale_h, 0.0f, 1.0f));
-
+		/* assume quad_shader is being used */
+		if(shadowmap == 0)
+		{	
 			quad_shader.bind();
+			glUniformMatrix4fv(quad_translation_matrix_uniform_id, 			1, GL_FALSE, &(translation_matrix[0]));
+			glUniformMatrix4fv(quad_projection_matrix_uniform_id, 			1, GL_FALSE, &(projection[0]));
+			glUniformMatrix4fv(quad_rotation_matrix_uniform_id, 			1, GL_FALSE, &(rotation_matrix[0]));
+			glUniformMatrix4fv(quad_camera_translation_matrix_uniform_id, 	1, GL_FALSE, &(camera_translate[0]));
+			glUniformMatrix4fv(quad_camera_rotation_matrix_uniform_id, 		1, GL_FALSE, &(camera_rotation[0]));
 
-			glUniformMatrix4fv(quad_translation_matrix_uniform_id, 1, GL_FALSE, &(translation_matrix[0]));
-			glUniformMatrix4fv(quad_projection_matrix_uniform_id, 1, GL_FALSE, &(projection_matrix[0]));
 			glUniform4fv(quad_scale_vector_uniform_id, 1, &(scale_vector[0]));
 			glUniform4fv(quad_color_vector_uniform_id, 1, &(color[0]));
-			glUniform4fv(window_to_unit_transform_vector_uniform_id, 1, &(window_to_unit_transform_vector[0]));
-			glUniform3fv(quad_lightpos_vectorarray_uniform_id, MAX_LIGHTS, lightpositions);
-			glUniform3fv(quad_lightcolor_vectorarray_uniform_id, MAX_LIGHTS, lightcolors);
+			glUniform4fv(quad_window_to_unit_uniform_id, 1, &(window_to_unit_transform_vector[0]));
+
+			glUniform3fv(quad_lightpos_vectorarray_uniform_id, 		MAX_LIGHTS, lightpositions);
+			glUniform3fv(quad_lightcolor_vectorarray_uniform_id, 	MAX_LIGHTS, lightcolors);
 
 			glUniform1fv(quad_lightrange_floatarray_uniform_id, MAX_LIGHTS, lightranges);
 			glUniform1iv(quad_renderlights_intarray_uniform_id, MAX_LIGHTS, renderlights);
-			glUniform1i(quad_numlights_int_uniform_id, num_lights);
+			glUniform1uiv(quad_shadowmaps_gluintarray_uniform_id, MAX_LIGHTS * 4, shadowmaps);
 
+			glUniform1i(quad_numlights_int_uniform_id, num_lights);
+			glUniform1i(quad_depthbuffer_int_uniform_id, shadowmap == 0 ? 0 : 1);
+			glUniform1i(quad_num_depthbuffer_int_uniform_id, num_depthbuffer);
+
+			glBindBuffer(GL_ARRAY_BUFFER, quad_normal_buffer);
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(
+			   1,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+			   3,                  // size
+			   GL_FLOAT,           // type
+			   GL_FALSE,           // normalized?
+			   0,                  // stride
+			   (void*)0            // array buffer offset
+			);
 
 			glBindBuffer(GL_ARRAY_BUFFER, quad_vertex_buffer);
 			glEnableVertexAttribArray(0);
@@ -316,9 +548,147 @@ namespace graphics
 			   (void*)0            // array buffer offset
 			);
 
-			glDrawArrays(GL_TRIANGLES, 0, 6);
+			glDrawArrays(GL_TRIANGLES, 0, 6*6);
 			glDisableVertexAttribArray(0);
+			glDisableVertexAttribArray(1);
 			quad_shader.unbind();
+		}
+		else if(shadowmap == 1) // use special shader for each shadowmap
+		{
+			// render a shadowmap for each light
+			for(int i = 0; i < num_lights; ++i)
+			{
+				Light *l = lights[i];
+				Shadow_Map *sm = l->shadowmap;
+
+				glBindFramebuffer(GL_FRAMEBUFFER, sm->fbo);
+				sm->shader->bind();
+				// everything except the orthogonal projection matrix should be uploaded
+				glUniformMatrix4fv(smshader_translation_matrix_uniform_id, 			1, GL_FALSE, &(translation_matrix[0]));
+				glUniformMatrix4fv(smshader_projection_matrix_uniform_id, 			1, GL_FALSE, &(projection[0]));
+				glUniformMatrix4fv(smshader_rotation_matrix_uniform_id, 			1, GL_FALSE, &(rotation_matrix[0]));
+				glUniformMatrix4fv(smshader_camera_translation_matrix_uniform_id, 	1, GL_FALSE, &((*(sm->translation_matrix))[0]));
+				sm->upload_rotation_matrices();
+
+				glUniform4fv(smshader_scale_vector_uniform_id, 1, &(scale_vector[0]));
+				glUniform4fv(smshader_window_to_unit_uniform_id, 1, &(window_to_unit_transform_vector[0]));
+
+				glBindBuffer(GL_ARRAY_BUFFER, quad_normal_buffer);
+				glEnableVertexAttribArray(1);
+				glVertexAttribPointer(
+				   1,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+				   3,                  // size
+				   GL_FLOAT,           // type
+				   GL_FALSE,           // normalized?
+				   0,                  // stride
+				   (void*)0            // array buffer offset
+				);
+
+				glBindBuffer(GL_ARRAY_BUFFER, quad_vertex_buffer);
+				glEnableVertexAttribArray(0);
+				glVertexAttribPointer(
+				   0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+				   3,                  // size
+				   GL_FLOAT,           // type
+				   GL_FALSE,           // normalized?
+				   0,                  // stride
+				   (void*)0            // array buffer offset
+				);
+
+				glDrawArrays(GL_TRIANGLES, 0, 6*6);
+				glDisableVertexAttribArray(0);
+				glDisableVertexAttribArray(1);
+
+				sm->shader->unbind();
+			}
+		}
+	}
+
+	math::mat4f translate_zero = math::translationMat4(math::vec4f(0.0f, 0.0f, -1.3f, 1.0f));
+	math::mat4f rotate_zero = math::rotationMat4(0.0f, math::vec3f(0.0f, 0.0f, 0.0f));
+	void render()
+	{
+		for(int rect_i = 0; rect_i < rectangles.size(); ++rect_i)
+		{
+			// render shadowmaps
+			/*
+			for(int i = 0; i < num_lights; ++i)
+			{
+				glBindFramebuffer(GL_FRAMEBUFFER, lights[i]->shadowmap_framebuffer);
+				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+				if(i == 0) glClear(GL_COLOR_BUFFER_BIT);
+				math::vec4f translate = math::vec4f(-lights[i]->position.x, -lights[i]->position.y, lights[i]->position.z, 1.0f);
+				translate =  translate * window_to_unit_transform_vector;
+				
+				translate.x += 1.0f;
+				translate.y += 1.0f;
+				
+				camera_translation_matrix = math::translationMat4(translate);
+
+				// up
+				camera_rotation_matrix = math::rotationMat4(90, math::vec3f(0.0f, 0.0f, 0.0f));
+				// render_rect(rectangles[rect_i], shadowmap_projection_matrix, camera_translation_matrix, camera_rotation_matrix, 1, 0);
+
+				// right
+				camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, 3.0f));
+				// render_rect(rectangles[rect_i], shadowmap_projection_matrix, camera_translation_matrix, camera_rotation_matrix, 1, 1);
+				// if(i == 0) std::cout << "camera translate: " << translate.x << ", " << translate.y << ", " << translate.z << std::endl;
+
+				// down
+				camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, 2.0f));
+				if(i == 0) render_rect(rectangles[rect_i], shadowmap_projection_matrix, camera_translation_matrix, camera_rotation_matrix, 1, 3);
+				
+				// left
+				camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, 1.0f));
+				// render_rect(rectangles[rect_i], shadowmap_projection_matrix, camera_translation_matrix, camera_rotation_matrix, 1, 3);
+			}
+			//*/
+
+			/*
+			for(int i = 0; i < num_lights; ++i)
+			{
+				glActiveTexture(GL_TEXTURE0 + lights[i]->shadowmap_texture_up);
+				glBindTexture(GL_TEXTURE_2D, lights[i]->shadowmap_texture_up);
+				glActiveTexture(GL_TEXTURE0 + lights[i]->shadowmap_texture_right);
+				glBindTexture(GL_TEXTURE_2D, lights[i]->shadowmap_texture_right);
+				glActiveTexture(GL_TEXTURE0 + lights[i]->shadowmap_texture_down);
+				glBindTexture(GL_TEXTURE_2D, lights[i]->shadowmap_texture_down);
+				glActiveTexture(GL_TEXTURE0 + lights[i]->shadowmap_texture_left);
+				glBindTexture(GL_TEXTURE_2D, lights[i]->shadowmap_texture_left);
+			}
+			//*/
+
+			math::vec4f translate = math::vec4f(-lights[2]->position.x, -lights[2]->position.y, lights[2]->position.z, 1.0f);
+			translate =  translate * window_to_unit_transform_vector;
+			
+			translate.x += 1.0f;
+			translate.y += 1.0f;
+			
+			camera_translation_matrix = math::translationMat4(translate);
+			camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, 2.0f));
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			render_rect(rectangles[rect_i], shadowmap_projection_matrix, translate_zero, rotate_zero);
+			// if(rectangles[rect_i]->render_in_shadowmap == 1) render_rect(rectangles[rect_i], shadowmap_projection_matrix, camera_translation_matrix, camera_rotation_matrix, 1, 0);
+			quad_shader.unbind();
+		}
+		SDL_GL_SwapWindow(window);
+	}
+
+	void destroy()
+	{
+		free(window);
+	}
+
+	namespace draw
+	{
+		void add_rectangle(Rectangle *rect)
+		{
+			::rectangles.push_back(rect);
+		}
+
+		void clear_rectangles()
+		{
+			::rectangles.clear();
 		}
 
 		float rot = 0;
@@ -347,6 +717,7 @@ namespace graphics
 
 		void line(math::vec2f p1, math::vec2f p2, math::vec4f &color, float z_index)
 		{
+			/*
 			float 	low_x = p1.x, high_x = p2.x, 
 					low_y = p1.y, high_y = p2.y;
 			if(p2.x < p1.x) { low_x = p2.x; high_x = p1.x; };
@@ -356,15 +727,6 @@ namespace graphics
 			float height = high_y - low_y;
 
 			quad_shader.bind();
-
-			/*
-			line_buffer_data[0] = p1.x;
-			line_buffer_data[1] = p1.y;
-			line_buffer_data[3] = p2.x;
-			line_buffer_data[4] = p2.y;
-			glBufferData(GL_ARRAY_BUFFER, sizeof(line_buffer_data), line_buffer_data, GL_STATIC_DRAW);
-			*/
-
 
 			glBindBuffer(GL_ARRAY_BUFFER, line_vertex_buffer);
 			glEnableVertexAttribArray(0);
@@ -384,12 +746,14 @@ namespace graphics
 
 			glUniformMatrix4fv(quad_translation_matrix_uniform_id, 1, GL_FALSE, &(translation_matrix[0]));
 			glUniformMatrix4fv(quad_projection_matrix_uniform_id, 1, GL_FALSE, &(projection_matrix[0]));
+			glUniformMatrix4fv(quad_rotation_matrix_uniform_id, 1, GL_FALSE, &(rotation_matrix[0]));
 			glUniform4fv(quad_scale_vector_uniform_id, 1, &(scale_vector[0]));
 			glUniform4fv(quad_color_vector_uniform_id, 1, &(color[0]));
 			 
 			glDrawArrays(GL_LINES, 0, 2);
 			glDisableVertexAttribArray(0);
 			quad_shader.unbind();
+			*/
 		}
 
 		void outline(Polygon &poly, math::vec4f &color, float z_index)

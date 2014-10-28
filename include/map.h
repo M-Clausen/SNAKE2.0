@@ -37,7 +37,7 @@ struct Portal
 struct Map_Tile
 {
 	char solid, blocks_light, data, registered_as_light_block;
-	math::mat2f rect;
+	graphics::Rectangle rect;
 
 	Map_Tile()
 	{
@@ -143,6 +143,8 @@ class Map
 			if(this->base_map[x + y * this->width].data != 0)
 				return false;
 
+			
+			std::cout << "setting food tile (" << x << ", " << y << ") with prev value" << this->food_map[x + y * this->width].data + 0 << std::endl;
 			if(x < this->width && y < this->height && x > 0 && y > 0)
 			{
 				this->food_map[x + y * this->width].data = t;
@@ -196,8 +198,8 @@ class Map
 			portals.push_back(p2_p);
 		}
 
-		void render_base();
-		void render_food();
+		void render_base(char add = 0);
+		void render_food(char add = 0);
 		void render_portals();
 		void render_grid();
 

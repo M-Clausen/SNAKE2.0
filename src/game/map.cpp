@@ -64,6 +64,8 @@ Map::Map(std::string path)
 	this->basetile_outside.data = 1;
 
 	file.close();
+
+	this->register_all_light_blocks();
 }
 
 void Map::register_all_light_blocks()
@@ -72,16 +74,16 @@ void Map::register_all_light_blocks()
 	{
 		for(int y = 0; y < this->height; ++y)
 		{
-			if(this->base_map[x + this->width * y].blocks_light == 1 && this->base_map[x + this->width * y].registered_as_light_block == 0)
+			if(this->base_map[x + this->width * y].data == 1 && this->base_map[x + this->width * y].registered_as_light_block == 0)
 			{
-				graphics::add_light_block_rect(&(this->base_map[x + this->width * y].rect));
+				graphics::add_light_block_rect(&(this->base_map[x + this->width * y].rect.rect));
 				this->base_map[x + this->width * y].registered_as_light_block = 1;
 			}
 		}
 	}
 }
 
-void Map::render_base()
+void Map::render_base(char add)
 {
 	/* 255 227 3 */
 	math::vec4f tile_color(26.0f / 255.0f, 60.0f / 255.0f, 87.0f / 255.0f, 1.0f);
@@ -93,25 +95,16 @@ void Map::render_base()
 		{
 			if(this->base_map[x + this->width * y].solid == 1)
 			{
-				math::mat2f rect = this->base_map[x + this->width * y].rect = math::mat2f(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
-				rect[1] /= 2;
-				rect[4] /= 2;
-				graphics::draw::rectangle(rect, tile_color);
-
-				rect[0] += rect[1];
-				graphics::draw::rectangle(rect, tile_color);
-
-				rect[3] += rect[4];
-				graphics::draw::rectangle(rect, tile_color);
-
-				rect[0] -= rect[1];
-				graphics::draw::rectangle(rect, tile_color);
+				this->base_map[x + this->width * y].rect.rect = math::mat2f(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
+				this->base_map[x + this->width * y].rect.color = tile_color;
+				this->base_map[x + this->width * y].rect.height = 0.05f;
+				if(add == 1 && this->base_map[x + this->width * y].solid) graphics::draw::add_rectangle(&this->base_map[x + this->width * y].rect);
 			}
 		}
 	}
 }
 
-void Map::render_food()
+void Map::render_food(char add)
 {
 	/* draw tiles */
 	for(int x = 0; x < this->width; ++x)
@@ -120,19 +113,10 @@ void Map::render_food()
 		{
 			if(this->food_map[x + this->width * y].data == 1)
 			{
-				math::mat2f rect = this->food_map[x + this->width * y].rect = math::mat2f(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
-				rect[1] /= 2;
-				rect[4] /= 2;
-				graphics::draw::rectangle(rect, this->food_color);
-
-				rect[0] += rect[1];
-				graphics::draw::rectangle(rect, this->food_color);
-
-				rect[3] += rect[4];
-				graphics::draw::rectangle(rect, this->food_color);
-
-				rect[0] -= rect[1];
-				graphics::draw::rectangle(rect, this->food_color);
+				this->food_map[x + this->width * y].rect.rect = math::mat2f(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
+				this->food_map[x + this->width * y].rect.color = this->food_color;
+				this->food_map[x + this->width * y].rect.height = 0.05f;
+				if(add == 1) graphics::draw::add_rectangle(&this->food_map[x + this->width * y].rect);
 			}
 		}
 	}
@@ -146,14 +130,14 @@ void Map::render_portals()
 		if(this->portals[i]->render == 1)
 		{
 			math::mat2f tile(this->portals[i]->mapx * MAP_TILE_SIZE, this->portals[i]->mapy * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
-			graphics::draw::rectangle(tile, this->portals[i]->color);
+			// graphics::draw::rectangle(tile, this->portals[i]->color, 0.05f);
 		}
 	}
 }
 
 void Map::render_grid()
 {
-	math::vec4f color(0.2f, 0.2f, 0.2f, 1.0f);
+	math::vec4f color(0.2f, 0.05f, 0.05f, 1.0f);
 
 	for(int x = 0; x < this->width; ++x)
 	{

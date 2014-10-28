@@ -18,7 +18,7 @@
 
 struct Snake_Elem
 {
-	math::mat2f rect;
+	graphics::Rectangle rect;
 	int mapx, mapy, mapz;
 	char is_head, visible, direction;
 	Snake_Elem *next, *prev, *last;
@@ -91,7 +91,7 @@ class Snake
 		void add_element();
 
 		void move();
-		void render();
+		void render(char add = 0);
 };
 
 #endif

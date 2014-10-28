@@ -89,6 +89,7 @@ namespace graphics
             return -1;
         }
 
+        compiled = 1;
         return 0;
     }
 
@@ -144,6 +145,57 @@ namespace graphics
 
         _id = progID;
 
+
+        if(progErrMsgs.size() > 1)
+        {
+            return -1;
+        }
+
+        compiled = 1;
+        return 0;
+    }
+
+    char Shader::addGeometryShader(const char *geoPath)
+    {
+        if(_id == 0)
+        {
+            return -1;
+        }
+
+        std::string geoShaderCode;
+        std::ifstream geoShaderStream(geoPath, std::ios::in);
+        if(geoShaderStream.is_open()){
+            std::string Line = "";
+            while(getline(geoShaderStream, Line))
+                geoShaderCode += "\n" + Line;
+            geoShaderStream.close();
+        }
+
+        GLint Result = GL_FALSE;
+        int infoLogLen;
+
+        char const *geoSourcePointer = geoShaderCode.c_str();
+        GLuint geoShaderID = glCreateShader(GL_GEOMETRY_SHADER);
+        glShaderSource(geoShaderID, 1, &geoSourcePointer, NULL);
+        glCompileShader(geoShaderID);
+
+        // Check Vertex Shader
+        glGetShaderiv(geoShaderID, GL_COMPILE_STATUS, &Result);
+        glGetShaderiv(geoShaderID, GL_INFO_LOG_LENGTH, &infoLogLen);
+        std::vector<char> vertShaderErrMsgs(infoLogLen);
+        glGetShaderInfoLog(geoShaderID, infoLogLen, NULL, &vertShaderErrMsgs[0]);
+        fprintf(stdout, "%s\n", &vertShaderErrMsgs[0]);
+
+        glAttachShader(_id, geoShaderID);
+        glLinkProgram(_id);
+
+        glGetProgramiv(_id, GL_LINK_STATUS, &Result);
+        glGetProgramiv(_id, GL_INFO_LOG_LENGTH, &infoLogLen);
+        std::vector<char> progErrMsgs(std::max(infoLogLen, int(1)));
+        glGetProgramInfoLog(_id, infoLogLen, NULL, &progErrMsgs[0]);
+        fprintf(stdout, "%s\n", &progErrMsgs[0]);
+
+        glDeleteShader(geoShaderID);
 
         if(progErrMsgs.size() > 1)
         {

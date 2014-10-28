@@ -5,27 +5,32 @@
 #include "game.h"
 
 graphics::Light light;
+graphics::Rectangle background;
 
-Timer light_timer;
+char add_renderobjects = 1;
 
 void Game::init()
 {
+	background.color = math::vec4f(66.0f / 255.0f, 100.0f / 255.0f, 127.0f / 255.0f, 1.0f);
+	background.rect = math::mat2f(0.0f, 0.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
+	background.height = 0.0f;
 	this->snake_timer.start();
-	light.position = math::vec3f(0.0f, 0.0f, 0.1f);
+	light.position = math::vec3f(0.0f, 0.0f, -0.03f);
 	light.color = math::vec3f(1.0f, 1.0f, 1.0f);
 	light.range = 4;
-	graphics::add_light(&light);
-
-	light_timer.start();
+	graphics::add_light(&light, 1);
 }
 
 void Game::render()
 {
-	math::vec4f bg_color(66.0f / 255.0f, 100.0f / 255.0f, 127.0f / 255.0f, 1.0f);
-	math::mat2f wtf(0.0f, 0.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
-	graphics::draw::rectangle(wtf, bg_color);
+	if(add_renderobjects == 1) 
+	{
+		std::cout << "adding objects" << std::endl;
+		graphics::draw::clear_rectangles();
+		graphics::draw::add_rectangle(&background);
+	}
 	
-	/* render background */
+	/*
 	for(int x = 0; x < this->current_map->get_width(); ++x)
 	{
 		for(int y = 0; y < this->current_map->get_height(); ++y)
@@ -43,15 +48,18 @@ void Game::render()
 			graphics::draw::rectangle(background, bg_color);
 		}
 	}
+	*/
 
-	this->current_map->render_base();
-	this->current_map->render_food();
+	this->current_map->render_base(add_renderobjects);
+	this->current_map->render_food(add_renderobjects);
 
-	this->current_snake->render();
+	this->current_snake->render(add_renderobjects);
 
 	this->current_map->render_portals();
 	
 	this->current_map->render_grid();
+
+	add_renderobjects = 0;
 }
 
 bool Game::update()
@@ -62,18 +70,10 @@ bool Game::update()
 	    {
 	    	this->current_snake->move();
 	    	this->snake_timer.start();
-	    	light.position.x = this->current_snake->head.mapx * MAP_TILE_SIZE + MAP_TILE_SIZE / 2;
-	    	light.position.y = this->current_snake->head.mapy * MAP_TILE_SIZE + MAP_TILE_SIZE / 2;
 	    }
-
-	    if(light_timer.get_ticks() > 1000)
-	    {
-	    	float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-	    	float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-	    	float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-	    	light.color = math::vec3f(r, g, b);
-	    	light_timer.start();
-	    }
+	    
+	    light.position.x = this->current_snake->head.mapx * MAP_TILE_SIZE + MAP_TILE_SIZE / 2;
+	    light.position.y = this->current_snake->head.mapy * MAP_TILE_SIZE + MAP_TILE_SIZE / 2;
 
 	    // std::cout << "snake_timer!" << std::endl;
 
@@ -153,6 +153,7 @@ bool Game::update()
 	    		this->current_map->set_food_tile(this->event.dat1_i, this->event.dat2_i, 0); /* destroy the fruit */
 	    		while(!this->current_map->set_food_tile(rand() % (this->current_map->get_width() - 1), rand() % (this->current_map->get_height() - 1), 1)) {};
 	    		this->current_snake->add_element();
+	    		add_renderobjects = 1;
 	    	}
 
 	    	if(this->event.type == events::EVENT_TYPE_SNAKE_HIT_PORTAL)
@@ -197,6 +198,7 @@ bool Game::update()
 
 	    		graphics::clear_light_block_rects();
 	    		this->current_map->register_all_light_blocks();
+	    		add_renderobjects = 1;
 	    	}
 	    }
 	    // std::cout << "done update" << std::endl;

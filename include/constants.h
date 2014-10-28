@@ -17,3 +17,4 @@
 #define SNAKE_DIRECTION_LEFT 	3
 
 #define MAX_LIGHTS 20
+#define MAX_LIGHT_BLOCKS 200

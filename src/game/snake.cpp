@@ -95,6 +95,7 @@ void Snake::move()
 		{
 			ev.dat1_i = this->head.mapx;
 			ev.dat2_i = this->head.mapy;
+			printf("hit food at (%i, %i)\n", ev.dat1_i, ev.dat2_i);
 			ev.type = events::EVENT_TYPE_SNAKE_HIT_FOOD;
 			events::fire(ev);
 		}
@@ -199,29 +200,23 @@ void Snake::set_direction(char dir)
 	}
 }
 
-void Snake::render()
+void Snake::render(char add)
 {
-	this->head.rect = math::mat2f(this->head.mapx * MAP_TILE_SIZE, this->head.mapy * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
-	graphics::draw::rectangle(this->head.rect, this->color);
+	this->head.rect.rect = math::mat2f(this->head.mapx * MAP_TILE_SIZE, this->head.mapy * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
+	this->head.rect.color = this->color;
+	this->head.rect.height = 0.03f;
+	this->head.rect.render_in_shadowmap = 0;
+	if(add == 1) graphics::draw::add_rectangle(&this->head.rect);
 
 	for(Snake_Elem *elem = this->head.last; elem->next != 0; elem = elem->next)
 	{
 		if(elem->visible == 1 && elem->mapz == this->head.mapz)
 		{
-			math::mat2f rect = elem->rect = math::mat2f(elem->mapx * MAP_TILE_SIZE, elem->mapy * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
-			
-			rect[1] /= 2;
-			rect[4] /= 2;
-			graphics::draw::rectangle(rect, this->color);
-
-			rect[0] += rect[1];
-			graphics::draw::rectangle(rect, this->color);
-
-			rect[3] += rect[4];
-			graphics::draw::rectangle(rect, this->color);
-
-			rect[0] -= rect[1];
-			graphics::draw::rectangle(rect, this->color);
+			elem->rect.rect = math::mat2f(elem->mapx * MAP_TILE_SIZE, elem->mapy * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
+			elem->rect.color = this->color;
+			elem->rect.height = 0.03f;
+			elem->rect.render_in_shadowmap = 0;
+			if(add == 1) graphics::draw::add_rectangle(&elem->rect);
 		}
 	}
 }
