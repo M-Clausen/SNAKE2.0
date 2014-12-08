@@ -14,6 +14,7 @@ void split_string(const std::string &s, char delim, std::vector<std::string> &el
 
 Map::Map(std::string path)
 {
+	this->is_current = 0;
 	std::ifstream file(path.c_str());
 
 	if(!file.is_open())
@@ -56,6 +57,7 @@ Map::Map(std::string path)
 			if(this->base_map[x + i * this->width].data != 0)
 			{
 				this->base_map[x + i * this->width].solid = this->base_map[x + i * this->width].blocks_light = 1;
+				printf("added block at (%i, %i)\n", x, i);
 			}
 		}
 	}
@@ -65,7 +67,7 @@ Map::Map(std::string path)
 
 	file.close();
 
-	this->register_all_light_blocks();
+	// this->register_all_light_blocks();
 }
 
 void Map::register_all_light_blocks()
@@ -74,10 +76,12 @@ void Map::register_all_light_blocks()
 	{
 		for(int y = 0; y < this->height; ++y)
 		{
-			if(this->base_map[x + this->width * y].data == 1 && this->base_map[x + this->width * y].registered_as_light_block == 0)
+			if(this->base_map[x + this->width * y].data == 1 && this->base_map[x + this->width * y].registered_as_light_block == 0 && this->base_map[x + this->width * y].solid == 1)
 			{
-				graphics::add_light_block_rect(&(this->base_map[x + this->width * y].rect.rect));
-				this->base_map[x + this->width * y].registered_as_light_block = 1;
+				// printf("adding light block at (%i, %i)\n", x, y);
+				// graphics::add_light_block_rect(&(this->base_map[x + this->width * y].rect.rect));
+				graphics::add_light_block(x, y, 1);
+				// this->base_map[x + this->width * y].registered_as_light_block = 1;
 			}
 		}
 	}

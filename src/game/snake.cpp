@@ -120,8 +120,6 @@ void Snake::move()
 				break;
 		}
 	}
-
-	this->parent_map->register_all_light_blocks();
 }
 
 void Snake::add_element()
@@ -217,6 +215,10 @@ void Snake::render(char add)
 			elem->rect.height = 0.03f;
 			elem->rect.render_in_shadowmap = 0;
 			if(add == 1) graphics::draw::add_rectangle(&elem->rect);
+
+			if(elem != this->head.last) graphics::add_light_block(elem->mapx, elem->mapy, 2);
 		}
 	}
+
+	graphics::add_light_block(this->head.mapx, this->head.mapy, 2);
 }

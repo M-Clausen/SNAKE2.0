@@ -8,9 +8,6 @@ namespace graphics
 {
     char Shader::compile()
     {
-        if(_id != 0)
-            glDeleteProgram(_id);
-
         // Create the shaders
         GLuint vertShaderID = glCreateShader(GL_VERTEX_SHADER);
         GLuint fragShaderID = glCreateShader(GL_FRAGMENT_SHADER);
@@ -65,23 +62,22 @@ namespace graphics
         // fprintf(stdout, "%s\n", &fragShaderErrMsgs[0]);
 
         // Link the program
-        GLuint progID = glCreateProgram();
-        glAttachShader(progID, vertShaderID);
-        glAttachShader(progID, fragShaderID);
-        glLinkProgram(progID);
+        glAttachShader(_id, vertShaderID);
+        glAttachShader(_id, fragShaderID);
+        glLinkProgram(_id);
 
         // Check the program
-        glGetProgramiv(progID, GL_LINK_STATUS, &Result);
-        glGetProgramiv(progID, GL_INFO_LOG_LENGTH, &infoLogLen);
+        glGetProgramiv(_id, GL_LINK_STATUS, &Result);
+        glGetProgramiv(_id, GL_INFO_LOG_LENGTH, &infoLogLen);
         std::vector<char> progErrMsgs(std::max(infoLogLen, int(1)));
 
-        glGetProgramInfoLog(progID, infoLogLen, NULL, &progErrMsgs[0]);
+        glGetProgramInfoLog(_id, infoLogLen, NULL, &progErrMsgs[0]);
         fprintf(stdout, "%s\n", &progErrMsgs[0]);
 
         glDeleteShader(vertShaderID);
         glDeleteShader(fragShaderID);
 
-        _id = progID;
+        _id = _id;
 
 
         if(progErrMsgs.size() > 1)
@@ -95,9 +91,6 @@ namespace graphics
 
     char Shader::compile(const char *vertSourcePointer, const char *fragSourcePointer)
     {
-        if(_id != 0)
-            glDeleteProgram(_id);
-
         // Create the shaders
         GLuint vertShaderID = glCreateShader(GL_VERTEX_SHADER);
         GLuint fragShaderID = glCreateShader(GL_FRAGMENT_SHADER);
@@ -128,22 +121,21 @@ namespace graphics
         fprintf(stdout, "%s\n", &fragShaderErrMsgs[0]);
 
         // Link the program
-        GLuint progID = glCreateProgram();
-        glAttachShader(progID, vertShaderID);
-        glAttachShader(progID, fragShaderID);
-        glLinkProgram(progID);
+        glAttachShader(_id, vertShaderID);
+        glAttachShader(_id, fragShaderID);
+        glLinkProgram(_id);
 
         // Check the program
-        glGetProgramiv(progID, GL_LINK_STATUS, &Result);
-        glGetProgramiv(progID, GL_INFO_LOG_LENGTH, &infoLogLen);
+        glGetProgramiv(_id, GL_LINK_STATUS, &Result);
+        glGetProgramiv(_id, GL_INFO_LOG_LENGTH, &infoLogLen);
         std::vector<char> progErrMsgs(std::max(infoLogLen, int(1)));
-        glGetProgramInfoLog(progID, infoLogLen, NULL, &progErrMsgs[0]);
+        glGetProgramInfoLog(_id, infoLogLen, NULL, &progErrMsgs[0]);
         fprintf(stdout, "%s\n", &progErrMsgs[0]);
 
         glDeleteShader(vertShaderID);
         glDeleteShader(fragShaderID);
 
-        _id = progID;
+        _id = _id;
 
 
         if(progErrMsgs.size() > 1)
@@ -182,22 +174,13 @@ namespace graphics
         // Check Vertex Shader
         glGetShaderiv(geoShaderID, GL_COMPILE_STATUS, &Result);
         glGetShaderiv(geoShaderID, GL_INFO_LOG_LENGTH, &infoLogLen);
-        std::vector<char> vertShaderErrMsgs(infoLogLen);
-        glGetShaderInfoLog(geoShaderID, infoLogLen, NULL, &vertShaderErrMsgs[0]);
-        fprintf(stdout, "%s\n", &vertShaderErrMsgs[0]);
+        std::vector<char> geoShaderErrMsgs(infoLogLen);
+        glGetShaderInfoLog(geoShaderID, infoLogLen, NULL, &geoShaderErrMsgs[0]);
+        fprintf(stdout, "%s\n", &geoShaderErrMsgs[0]);
 
         glAttachShader(_id, geoShaderID);
-        glLinkProgram(_id);
 
-        glGetProgramiv(_id, GL_LINK_STATUS, &Result);
-        glGetProgramiv(_id, GL_INFO_LOG_LENGTH, &infoLogLen);
-        std::vector<char> progErrMsgs(std::max(infoLogLen, int(1)));
-        glGetProgramInfoLog(_id, infoLogLen, NULL, &progErrMsgs[0]);
-        fprintf(stdout, "%s\n", &progErrMsgs[0]);
-
-        glDeleteShader(geoShaderID);
-
-        if(progErrMsgs.size() > 1)
+        if(geoShaderErrMsgs.size() > 1)
         {
             return -1;
         }

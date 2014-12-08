@@ -1,7 +1,7 @@
 /******************************************
  * COPYRIGHT (C) 2014 MADS HAUPT CLAUSEN
  ******************************************/
- 
+
 #include "render.h"
 
 #include "constants.h"
@@ -20,6 +20,7 @@ GLuint quad_vertex_buffer;
 GLuint quad_normal_buffer;
 GLuint line_vertex_buffer;
 GLuint light_position_buffer;
+GLuint shadow_poly_buffer;
 
 static GLfloat quad_buffer_data[] = {
 	// top face
@@ -130,11 +131,13 @@ static GLfloat line_buffer_data[] = {
 	1.0f, 1.0f, 0.0f
 };
 
+GLfloat *shadow_poly_data;
+
 float lightpositions[MAX_LIGHTS * 3];
 float lightcolors[MAX_LIGHTS * 3];
 float lightranges[MAX_LIGHTS];
 int renderlights[MAX_LIGHTS];
-GLuint shadowmaps[MAX_LIGHTS * 4];
+GLuint shadowmaps[MAX_LIGHTS];
 float *shadowmap_translation_matrices[MAX_LIGHTS];
 float *shadowmap_rotation_matrices[4];
 float *shadowmap_projection_matrices[MAX_LIGHTS];
@@ -197,11 +200,14 @@ GLuint quad_shadowmaps_gluintarray_uniform_id;
 
 math::vec2f near_far_vector;
 GLuint smshader_near_far_vector_uniform_id;
+GLuint quad_near_far_vector_uniform_id;
 
 /*********************************************/
 
 std::vector<math::mat2f *> light_block_rects;
 std::vector<graphics::Rectangle *> rectangles;
+
+char lightblock_map[(MAP_WIDTH) * (MAP_HEIGHT)];
 
 namespace graphics
 {
@@ -223,70 +229,48 @@ namespace graphics
 
 	void add_light(Light *l, char gen_framebuffer)
 	{
+
 		lights.push_back(l);
 		num_lights = lights.size();
 
+		glGenFramebuffers(1, &(l->shadowmap_framebuffer));
+		glBindFramebuffer(GL_FRAMEBUFFER, l->shadowmap_framebuffer);
+
 		/*
-		if(gen_framebuffer == 1)
-		{
-			std::cout << "generating shadowmap shit" << std::endl;
-			printf("glGenFramebuffer = %p\n", glGenFramebuffers);
-			l->shadowmap_aspectratio = 1 / 200;
-			glGenFramebuffers(1, &(l->shadowmap_framebuffer));
-			std::cout << "generated framebuffer" << std::endl;
-			glBindFramebuffer(GL_FRAMEBUFFER, l->shadowmap_framebuffer);
-
-			// generate four textures, so everything around the point light can be covered
-			glGenTextures(1, &l->shadowmap_texture_up);
-			glBindTexture(GL_TEXTURE_2D, l->shadowmap_texture_up);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			std::cout << "generating texture 1 with ID #" << l->shadowmap_texture_up << std::endl;
-
-			glGenTextures(1, &l->shadowmap_texture_right);
-			glBindTexture(GL_TEXTURE_2D, l->shadowmap_texture_right);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			std::cout << "generating texture 2 with ID #" << l->shadowmap_texture_right << std::endl;
-
-			glGenTextures(1, &l->shadowmap_texture_down);
-			glBindTexture(GL_TEXTURE_2D, l->shadowmap_texture_down);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			std::cout << "generating texture 3 with ID #" << l->shadowmap_texture_down << std::endl;
-
-			glGenTextures(1, &l->shadowmap_texture_left);
-			glBindTexture(GL_TEXTURE_2D, l->shadowmap_texture_left);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			std::cout << "generating texture 4 with ID #" << l->shadowmap_texture_left << std::endl;
-
-			// add textures to framebuffer
-			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, l->shadowmap_texture_up, 0);
-			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, l->shadowmap_texture_right, 0);
-			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, l->shadowmap_texture_down, 0);
-			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, l->shadowmap_texture_left, 0);
-
-			GLenum drawbuffers[4] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
-			glDrawBuffers(4, drawbuffers);
-
-			shadowmaps[(num_lights - 1) * 4 + 0] = l->shadowmap_texture_up;
-			shadowmaps[(num_lights - 1) * 4 + 1] = l->shadowmap_texture_right;
-			shadowmaps[(num_lights - 1) * 4 + 2] = l->shadowmap_texture_down;
-			shadowmaps[(num_lights - 1) * 4 + 3] = l->shadowmap_texture_left;
-
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		}
+		glGenRenderbuffers(1, &(l->shadowmap_texture_up));
+		glBindRenderbuffer(GL_RENDERBUFFER, l->shadowmap_texture_up);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, l->shadowmap_texture_up);
 		*/
+
+		glGenTextures(1, &(l->shadowmap_texture_up));
+ 
+		// "Bind" the newly created texture : all future texture functions will modify this texture
+		glBindTexture(GL_TEXTURE_2D, l->shadowmap_texture_up);
+		 
+		// Give an empty image to OpenGL ( the last "0" )
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+		
+		// Poor filtering. Needed !
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+		// Set "renderedTexture" as our colour attachement #0
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, l->shadowmap_texture_up, 0);
+		 
+		// Set the list of draw buffers.
+		GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+		glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
+
+		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		printf("shit\n");
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
 	void add_light_block_rect(math::mat2f *rect)
 	{
-		std::cout << "add light block " << light_block_rects.size() << std::endl;
+		// std::cout << "add light block " << light_block_rects.size() << std::endl;
 		if(rect)
 			light_block_rects.push_back(rect);
 
@@ -294,15 +278,24 @@ namespace graphics
 		{
 			light_block_rects_uniform_array[i] = &((*rect)[0]);
 		}
-	
+
 		quad_shader.bind();
 		glUniformMatrix2fv(light_block_rects_uniform_array_id, light_block_rects.size(), GL_FALSE, light_block_rects_uniform_array[0]);
 		glUniform1i(num_light_block_rects_uniform_id, light_block_rects.size());
+
+		std::cout << "wtf" << std::endl;
+	}
+
+	void add_light_block(int x, int y, char t)
+	{
+		lightblock_map[y * MAP_WIDTH + x] = t;
+		// printf("added light at (%i, %i)\n", x, y);
 	}
 
 	void clear_light_block_rects()
 	{
 		light_block_rects.clear();
+		memset(lightblock_map, 0, MAP_WIDTH * MAP_HEIGHT);
 	}
 
 	/**
@@ -318,8 +311,8 @@ namespace graphics
 			return -1;
 		}
 
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
 		window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, win_width, win_height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
@@ -337,7 +330,7 @@ namespace graphics
 	   	}
 
 	   	//Initialize GLEW
-        glewExperimental = GL_TRUE; 
+        glewExperimental = GL_TRUE;
         GLenum glew_err = glewInit();
         if(glew_err != GLEW_OK)
         {
@@ -363,15 +356,17 @@ namespace graphics
 
 	int init_gl()
 	{
+		quad_shader.prepare();
+		shadowmap_shader.prepare();
 		if(quad_shader.compile() == -1)
 		{
 			return -1;
 		}
 
-		if(shadowmap_shader.compile() == -1 || shadowmap_shader.addGeometryShader("shaders/shadowmap.gs") == -1)
-		{
-			return -1;
-		}
+		std::cout << "compiled quad shader" << std::endl;
+
+		// if(shadowmap_shader.addGeometryShader("shaders/shadowmap.gs") == -1) return -1;
+		if(shadowmap_shader.compile() == -1) return -1;
 
 		GLuint vertex_arr_id;
 		glGenVertexArrays(1, &vertex_arr_id);
@@ -389,6 +384,11 @@ namespace graphics
 		glBindBuffer(GL_ARRAY_BUFFER, line_vertex_buffer);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(line_buffer_data), line_buffer_data, GL_STATIC_DRAW);
 
+		shadow_poly_data = new GLfloat[360 * 2 * 3 * 3];
+		glGenBuffers(1, &shadow_poly_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, shadow_poly_buffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(shadow_poly_data), shadow_poly_data, GL_DYNAMIC_DRAW);
+
 		/*
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_COLOR, GL_SRC_COLOR);
@@ -404,7 +404,7 @@ namespace graphics
 		projection_matrix = math::orthoMat4(-1, 1, -1, 1, 1, 5);
 
 		//*
-		float n = 0.01f;
+		float n = 0.05f;
 		float t = tan(90 / 2 * (DEGTORAD)) * n;
 		float b = -t;
 	    float r = t * 1;
@@ -433,10 +433,14 @@ namespace graphics
 		quad_camera_translation_matrix_uniform_id = quad_shader.getUniformLocation("camera_translation");
 		quad_camera_rotation_matrix_uniform_id =	quad_shader.getUniformLocation("camera_rotation");
 		quad_depthbuffer_int_uniform_id = 			quad_shader.getUniformLocation("depthbuffer");
-		quad_num_depthbuffer_int_uniform_id = 		quad_shader.getUniformLocation("num_depthbuffer");
+		quad_num_depthbuffer_int_uniform_id = 		quad_shader.getUniformLocation("num_buffer");
 		quad_shadowmaps_gluintarray_uniform_id = 	quad_shader.getUniformLocation("shadowmaps");
+
+		std::cout << "ID: " << quad_shadowmaps_gluintarray_uniform_id << std::endl;
+
 		light_block_rects_uniform_array_id = 		quad_shader.getUniformLocation("lightblock_rects");
 		num_light_block_rects_uniform_id = 			quad_shader.getUniformLocation("num_lightblock_rects");
+		quad_near_far_vector_uniform_id = 			quad_shader.getUniformLocation("near_far");
 
 		smshader_translation_matrix_uniform_id = 		shadowmap_shader.getUniformLocation("model_translation");
 		smshader_projection_matrix_uniform_id = 		shadowmap_shader.getUniformLocation("projection");
@@ -446,8 +450,28 @@ namespace graphics
 		smshader_camera_translation_matrix_uniform_id = shadowmap_shader.getUniformLocation("camera_translation");
 		smshader_near_far_vector_uniform_id = 			shadowmap_shader.getUniformLocation("near_far");
 
+
+		GLuint smshader_camera_rotation_matrix_up_id = 		shadowmap_shader.getUniformLocation("shadowmap_rotation_matrices[0]");
+		GLuint smshader_camera_rotation_matrix_right_id = 	shadowmap_shader.getUniformLocation("shadowmap_rotation_matrices[1]");
+		GLuint smshader_camera_rotation_matrix_down_id = 	shadowmap_shader.getUniformLocation("shadowmap_rotation_matrices[2]");
+		GLuint smshader_camera_rotation_matrix_left_id = 	shadowmap_shader.getUniformLocation("shadowmap_rotation_matrices[3]");
+
 		glEnable(GL_DEPTH_TEST);
 
+		// pass rotation matrices to shadowmap shader
+		shadowmap_shader.bind();
+		camera_rotation_matrix = math::rotationMat4(90, math::vec3f(0.0f, 0.0f, 0.0f));
+		glUniformMatrix4fv(smshader_camera_rotation_matrix_up_id, 1, GL_FALSE, &(camera_rotation_matrix[0]));
+
+		camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, 3.0f));
+		glUniformMatrix4fv(smshader_camera_rotation_matrix_right_id, 1, GL_FALSE, &(camera_rotation_matrix[0]));
+
+		camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, 2.0f));
+		glUniformMatrix4fv(smshader_camera_rotation_matrix_down_id, 1, GL_FALSE, &(camera_rotation_matrix[0]));
+
+		camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, 1.0f));
+		glUniformMatrix4fv(smshader_camera_rotation_matrix_left_id, 1, GL_FALSE, &(camera_rotation_matrix[0]));
+		shadowmap_shader.unbind();
 		return 0;
 	}
 
@@ -474,12 +498,12 @@ namespace graphics
 				math::vec4f translate = math::vec4f(-lights[i]->position.x, -lights[i]->position.y, lights[i]->position.z, 1.0f);
 				// math::vec4f translate(0.0f, 0.0f, -2.0f, 1.0f);
 				translate =  translate * window_to_unit_transform_vector;
-				
+
 				translate.x /= 2;
 				translate.x += 0.645f;
 				translate.y /= 2;
 				translate.y += 0.23f;
-				
+
 				// camera_translation_matrix = math::translationMat4(translate);
 				// camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, -1.0f));
 			}
@@ -496,15 +520,16 @@ namespace graphics
 		math::vec4f color = rect->color;
 		float height = rect->height;
 
-		float scale_w = w / (WINDOW_WIDTH);
-		float scale_h = h / (WINDOW_HEIGHT);
+		float scale_w = (w-1) / (WINDOW_WIDTH);
+		float scale_h = (h-1) / (WINDOW_HEIGHT);
 		scale_vector = math::vec4f(scale_w, scale_h, height, 1.0);
-		translation_matrix = math::translationMat4(math::vec4f(2 * x / (WINDOW_WIDTH) - 1 + scale_w, 2 * y / (WINDOW_HEIGHT) - 1 + scale_h, -height, 1.0f));
+		translation_matrix = math::translationMat4(math::vec4f(2 * x / (WINDOW_WIDTH) - 1 + scale_w, 2 * (y+1) / (WINDOW_HEIGHT) - 1 + scale_h, -height, 1.0f));
 
 		/* assume quad_shader is being used */
-		if(shadowmap == 0)
-		{	
+		if(1)
+		{
 			quad_shader.bind();
+
 			glUniformMatrix4fv(quad_translation_matrix_uniform_id, 			1, GL_FALSE, &(translation_matrix[0]));
 			glUniformMatrix4fv(quad_projection_matrix_uniform_id, 			1, GL_FALSE, &(projection[0]));
 			glUniformMatrix4fv(quad_rotation_matrix_uniform_id, 			1, GL_FALSE, &(rotation_matrix[0]));
@@ -520,8 +545,16 @@ namespace graphics
 
 			glUniform1fv(quad_lightrange_floatarray_uniform_id, MAX_LIGHTS, lightranges);
 			glUniform1iv(quad_renderlights_intarray_uniform_id, MAX_LIGHTS, renderlights);
-			glUniform1uiv(quad_shadowmaps_gluintarray_uniform_id, MAX_LIGHTS * 4, shadowmaps);
 
+			for(int i = 0; i < num_lights; ++i)
+			{
+				glUniform1ui(quad_shadowmaps_gluintarray_uniform_id + i, i);
+			}
+
+			glUniform2fv(quad_near_far_vector_uniform_id, 1, &(near_far_vector[0]));
+
+			GLuint do_shadowmap_id = quad_shader.getUniformLocation("do_shadowmap");
+			glUniform1i(do_shadowmap_id, 0);
 			glUniform1i(quad_numlights_int_uniform_id, num_lights);
 			glUniform1i(quad_depthbuffer_int_uniform_id, shadowmap == 0 ? 0 : 1);
 			glUniform1i(quad_num_depthbuffer_int_uniform_id, num_depthbuffer);
@@ -551,56 +584,8 @@ namespace graphics
 			glDrawArrays(GL_TRIANGLES, 0, 6*6);
 			glDisableVertexAttribArray(0);
 			glDisableVertexAttribArray(1);
+
 			quad_shader.unbind();
-		}
-		else if(shadowmap == 1) // use special shader for each shadowmap
-		{
-			// render a shadowmap for each light
-			for(int i = 0; i < num_lights; ++i)
-			{
-				Light *l = lights[i];
-				Shadow_Map *sm = l->shadowmap;
-
-				glBindFramebuffer(GL_FRAMEBUFFER, sm->fbo);
-				sm->shader->bind();
-				// everything except the orthogonal projection matrix should be uploaded
-				glUniformMatrix4fv(smshader_translation_matrix_uniform_id, 			1, GL_FALSE, &(translation_matrix[0]));
-				glUniformMatrix4fv(smshader_projection_matrix_uniform_id, 			1, GL_FALSE, &(projection[0]));
-				glUniformMatrix4fv(smshader_rotation_matrix_uniform_id, 			1, GL_FALSE, &(rotation_matrix[0]));
-				glUniformMatrix4fv(smshader_camera_translation_matrix_uniform_id, 	1, GL_FALSE, &((*(sm->translation_matrix))[0]));
-				sm->upload_rotation_matrices();
-
-				glUniform4fv(smshader_scale_vector_uniform_id, 1, &(scale_vector[0]));
-				glUniform4fv(smshader_window_to_unit_uniform_id, 1, &(window_to_unit_transform_vector[0]));
-
-				glBindBuffer(GL_ARRAY_BUFFER, quad_normal_buffer);
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(
-				   1,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-				   3,                  // size
-				   GL_FLOAT,           // type
-				   GL_FALSE,           // normalized?
-				   0,                  // stride
-				   (void*)0            // array buffer offset
-				);
-
-				glBindBuffer(GL_ARRAY_BUFFER, quad_vertex_buffer);
-				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(
-				   0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-				   3,                  // size
-				   GL_FLOAT,           // type
-				   GL_FALSE,           // normalized?
-				   0,                  // stride
-				   (void*)0            // array buffer offset
-				);
-
-				glDrawArrays(GL_TRIANGLES, 0, 6*6);
-				glDisableVertexAttribArray(0);
-				glDisableVertexAttribArray(1);
-
-				sm->shader->unbind();
-			}
 		}
 	}
 
@@ -610,67 +595,154 @@ namespace graphics
 	{
 		for(int rect_i = 0; rect_i < rectangles.size(); ++rect_i)
 		{
-			// render shadowmaps
-			/*
-			for(int i = 0; i < num_lights; ++i)
-			{
-				glBindFramebuffer(GL_FRAMEBUFFER, lights[i]->shadowmap_framebuffer);
-				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-				if(i == 0) glClear(GL_COLOR_BUFFER_BIT);
-				math::vec4f translate = math::vec4f(-lights[i]->position.x, -lights[i]->position.y, lights[i]->position.z, 1.0f);
-				translate =  translate * window_to_unit_transform_vector;
-				
-				translate.x += 1.0f;
-				translate.y += 1.0f;
-				
-				camera_translation_matrix = math::translationMat4(translate);
-
-				// up
-				camera_rotation_matrix = math::rotationMat4(90, math::vec3f(0.0f, 0.0f, 0.0f));
-				// render_rect(rectangles[rect_i], shadowmap_projection_matrix, camera_translation_matrix, camera_rotation_matrix, 1, 0);
-
-				// right
-				camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, 3.0f));
-				// render_rect(rectangles[rect_i], shadowmap_projection_matrix, camera_translation_matrix, camera_rotation_matrix, 1, 1);
-				// if(i == 0) std::cout << "camera translate: " << translate.x << ", " << translate.y << ", " << translate.z << std::endl;
-
-				// down
-				camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, 2.0f));
-				if(i == 0) render_rect(rectangles[rect_i], shadowmap_projection_matrix, camera_translation_matrix, camera_rotation_matrix, 1, 3);
-				
-				// left
-				camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, 1.0f));
-				// render_rect(rectangles[rect_i], shadowmap_projection_matrix, camera_translation_matrix, camera_rotation_matrix, 1, 3);
-			}
-			//*/
-
-			/*
-			for(int i = 0; i < num_lights; ++i)
-			{
-				glActiveTexture(GL_TEXTURE0 + lights[i]->shadowmap_texture_up);
-				glBindTexture(GL_TEXTURE_2D, lights[i]->shadowmap_texture_up);
-				glActiveTexture(GL_TEXTURE0 + lights[i]->shadowmap_texture_right);
-				glBindTexture(GL_TEXTURE_2D, lights[i]->shadowmap_texture_right);
-				glActiveTexture(GL_TEXTURE0 + lights[i]->shadowmap_texture_down);
-				glBindTexture(GL_TEXTURE_2D, lights[i]->shadowmap_texture_down);
-				glActiveTexture(GL_TEXTURE0 + lights[i]->shadowmap_texture_left);
-				glBindTexture(GL_TEXTURE_2D, lights[i]->shadowmap_texture_left);
-			}
-			//*/
-
-			math::vec4f translate = math::vec4f(-lights[2]->position.x, -lights[2]->position.y, lights[2]->position.z, 1.0f);
-			translate =  translate * window_to_unit_transform_vector;
-			
-			translate.x += 1.0f;
-			translate.y += 1.0f;
-			
-			camera_translation_matrix = math::translationMat4(translate);
-			camera_rotation_matrix = math::rotationMat4(90, math::vec3f(1.0f, 0.0f, 2.0f));
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			render_rect(rectangles[rect_i], shadowmap_projection_matrix, translate_zero, rotate_zero);
-			// if(rectangles[rect_i]->render_in_shadowmap == 1) render_rect(rectangles[rect_i], shadowmap_projection_matrix, camera_translation_matrix, camera_rotation_matrix, 1, 0);
-			quad_shader.unbind();
+
+			render_rect(rectangles[rect_i], projection_matrix, translate_zero, rotate_zero, 0, 0);
 		}
+
+		for(int lights_i = 0; lights_i < num_lights; ++lights_i)
+		{
+			math::vec2f middle(lights[lights_i]->position.x, lights[lights_i]->position.y);
+
+			float prevx, prevy;
+
+			for(float angle = -1; angle < 360 * 2; ++angle)
+			{
+				// track line
+				float curx = middle.x;
+				float cury = middle.y;
+
+				// create heading vector
+				math::vec2f heading(cos(angle / 2 * DEGTORAD), sin(angle / 2* DEGTORAD));
+
+				float dx = heading.x > 0 ? heading.x - middle.x : middle.x - heading.x;
+				float dy = heading.y > 0 ? heading.y - middle.y : middle.y - heading.y;
+
+				// printf("(%f, %f, %f)\n", heading.x, heading.y, dy);
+
+				float len = sqrt(dx*dx + dy*dy);
+				float movx = dx / len;
+				float movy = dy / len;
+
+				//*
+				// * 4 to make sure it's long enough
+				for(int i = 0; i < len * 5; ++i)
+				{
+					// check for intersections and whatnot
+					int mapx = floor(curx / MAP_TILE_SIZE);
+					int mapy = floor(cury / MAP_TILE_SIZE);
+					// if(x == 0) printf("curpos = (%f, %f) -> (%i, %i)\n", curx, cury, mapx, mapy);
+
+
+					char lightblock = lightblock_map[(mapy * MAP_WIDTH + mapx)];
+					if(lightblock != 0 ||
+						curx < 0 || curx > WINDOW_WIDTH || cury < 0 || cury > WINDOW_HEIGHT)
+					{
+						// move curpos to edge of tile
+						//*
+						char done = 0;
+						for(int _i = 0; done == 0; ++_i)
+						{
+							curx += heading.x / 10;
+							cury += heading.y / 10;
+
+							int _mapx = floor(curx / MAP_TILE_SIZE);
+							int _mapy = floor(cury / MAP_TILE_SIZE);
+
+							if(lightblock_map[(_mapy * MAP_WIDTH + _mapx)] != lightblock)
+								done = 1;
+						}
+						//*/
+
+						if(angle > -1)
+						{
+							// add point to polygon
+							shadow_poly_data[(int) angle * 3 * 3 + 0] = middle.x;
+							shadow_poly_data[(int) angle * 3 * 3 + 1] = middle.y;
+							shadow_poly_data[(int) angle * 3 * 3 + 2] = 0.0f;
+
+							shadow_poly_data[(int) angle * 3 * 3 + 3] = prevx;
+							shadow_poly_data[(int) angle * 3 * 3 + 4] = prevy;
+							shadow_poly_data[(int) angle * 3 * 3 + 5] = 0.0f;
+
+							shadow_poly_data[(int) angle * 3 * 3 + 6] = curx;
+							shadow_poly_data[(int) angle * 3 * 3 + 7] = cury;
+							shadow_poly_data[(int) angle * 3 * 3 + 8] = 0.0f;
+						}
+						//*/
+
+						prevx = curx;
+						prevy = cury;
+
+						// break loop
+						// printf("found block at (%i, %i)\n", mapx, mapy);
+						i = len  * 5;
+					}
+
+					curx += heading.x;
+					cury += heading.y;
+				}
+				//*/
+
+				math::vec4f color(lights[lights_i]->color.x, lights[lights_i]->color.y, lights[lights_i]->color.z, 0.5f);
+				// graphics::draw::line(math::vec2f(middle.x, middle.y), math::vec2f(curx, cury), color, 2);
+			}
+
+			//*
+			math::vec4f color(1.0f, 1.0f, 1.0f, 1.0f);
+
+			quad_shader.bind();
+			glBindFramebuffer(GL_FRAMEBUFFER, lights[lights_i]->shadowmap_framebuffer);
+			glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+			glBindBuffer(GL_ARRAY_BUFFER, shadow_poly_buffer);
+			glBufferData(GL_ARRAY_BUFFER, 360*2*3*3*8, shadow_poly_data, GL_DYNAMIC_DRAW);
+
+			scale_vector = math::vec4f(2.0f / (WINDOW_WIDTH), 2.0f / (WINDOW_HEIGHT), 1.0f, 1.0f);
+			translation_matrix = math::translationMat4(math::vec4f(-1.0f, -1.0f, 4.0f, 1.0f));
+
+			glUniformMatrix4fv(quad_translation_matrix_uniform_id, 			1, GL_FALSE, &(translation_matrix[0]));
+			glUniformMatrix4fv(quad_projection_matrix_uniform_id, 			1, GL_FALSE, &(projection_matrix[0]));
+			glUniformMatrix4fv(quad_rotation_matrix_uniform_id, 			1, GL_FALSE, &(rotate_zero[0]));
+
+			glUniform4fv(quad_scale_vector_uniform_id, 1, &(scale_vector[0]));
+			glUniform4fv(quad_color_vector_uniform_id, 1, &(color[0]));
+			glUniform4fv(quad_window_to_unit_uniform_id, 1, &(window_to_unit_transform_vector[0]));
+
+			GLuint do_shadowmap_id = quad_shader.getUniformLocation("do_shadowmap");
+			glUniform1i(do_shadowmap_id, 1);
+
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(
+			   0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+			   3,                  // size
+			   GL_FLOAT,           // type
+			   GL_FALSE,           // normalized?
+			   0,                  // stride
+			   (void*)0            // array buffer offset
+			);
+
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glDrawArrays(GL_TRIANGLES, 0, 360*2*3);
+			glDisableVertexAttribArray(0);
+			quad_shader.unbind();
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			quad_shader.bind();
+			glActiveTexture(GL_TEXTURE0 + lights_i);
+			glBindTexture(GL_TEXTURE_2D, lights[lights_i]->shadowmap_texture_up);
+			quad_shader.unbind();
+			shadowmaps[lights_i] = lights_i;
+			//*/
+		}
+
+
+		/*
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, lights[2]->shadowmap_framebuffer);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		//*/
 		SDL_GL_SwapWindow(window);
 	}
 
@@ -697,7 +769,7 @@ namespace graphics
 			glPushMatrix();
 				glNormal3f(0.0f, 0.0f, 1.0f); /* top down game, normal is always towards the camera(unless specified in normal map) */
 
-				glTranslatef(	poly.pos().x + poly.size().x / 2, 
+				glTranslatef(	poly.pos().x + poly.size().x / 2,
 								poly.pos().y + poly.size().y / 2,
 								z_index); /* translate to the centre of the polygon so rotations are possible */
 								/* move towards camera so shadows can be painted */
@@ -717,14 +789,15 @@ namespace graphics
 
 		void line(math::vec2f p1, math::vec2f p2, math::vec4f &color, float z_index)
 		{
-			/*
-			float 	low_x = p1.x, high_x = p2.x, 
+			//*
+			float 	low_x = p1.x, high_x = p2.x,
 					low_y = p1.y, high_y = p2.y;
 			if(p2.x < p1.x) { low_x = p2.x; high_x = p1.x; };
 			if(p2.y < p1.y) { low_y = p2.y; high_y = p1.y; };
 
 			float width = high_x - low_x;
 			float height = high_y - low_y;
+			// printf("lowx: %f, highx: %f, width: %f\n", low_x, high_x, width);
 
 			quad_shader.bind();
 
@@ -741,30 +814,32 @@ namespace graphics
 
 			float scale_w = width / (WINDOW_WIDTH);
 			float scale_h = height / (WINDOW_HEIGHT);
-			scale_vector = math::vec4f(scale_w, scale_h, 1.0, 1.0);
-			translation_matrix = math::translationMat4(math::vec4f(2 * low_x / (WINDOW_WIDTH) - 1 + scale_w, 2 * low_y / (WINDOW_HEIGHT) - 1 + scale_h, 0.0f, 1.0f));
+			scale_vector = math::vec4f((high_x > p1.x ? -scale_w : scale_w), (high_y > p1.y ? -scale_h : scale_h), 1.0, 1.0);
+			// scale_vector = math::vec4f(scale_w, scale_h, 1.0, 1.0);
+			translation_matrix = math::translationMat4(math::vec4f(2 * low_x / (WINDOW_WIDTH) - 1 + scale_w, 2 * low_y / (WINDOW_HEIGHT) - 1 + scale_h, z_index, 1.0f));
 
 			glUniformMatrix4fv(quad_translation_matrix_uniform_id, 1, GL_FALSE, &(translation_matrix[0]));
 			glUniformMatrix4fv(quad_projection_matrix_uniform_id, 1, GL_FALSE, &(projection_matrix[0]));
 			glUniformMatrix4fv(quad_rotation_matrix_uniform_id, 1, GL_FALSE, &(rotation_matrix[0]));
 			glUniform4fv(quad_scale_vector_uniform_id, 1, &(scale_vector[0]));
 			glUniform4fv(quad_color_vector_uniform_id, 1, &(color[0]));
-			 
+
 			glDrawArrays(GL_LINES, 0, 2);
 			glDisableVertexAttribArray(0);
 			quad_shader.unbind();
-			*/
+			//*/
 		}
+
 
 		void outline(Polygon &poly, math::vec4f &color, float z_index)
 		{
+			/*
 			glPushMatrix();
-				glNormal3f(0.0f, 0.0f, 1.0f); /* top down game, normal is always towards the camera(unless specified in normal map) */
+				glNormal3f(0.0f, 0.0f, 1.0f);
 
-				glTranslatef(	poly.pos().x + poly.size().x / 2, 
+				glTranslatef(	poly.pos().x + poly.size().x / 2,
 								poly.pos().y + poly.size().y / 2,
-								z_index); /* translate to the centre of the polygon so rotations are possible */
-								/* move towards camera so shadows can be painted */
+								z_index);
 
 				glColor4f(color.x, color.y, color.z, color.w);
 				glBegin(GL_LINES);
@@ -779,18 +854,19 @@ namespace graphics
 
 						glVertex2f(	vert.x - (poly.pos().x + poly.size().x / 2),
 									vert.y - (poly.pos().y + poly.size().y / 2));
-						
+
 						prev = vert;
 					}
 
 					glVertex2f(	prev.x - (poly.pos().x + poly.size().x / 2),
 								prev.y - (poly.pos().y + poly.size().y / 2));
-					
+
 					prev = poly.get_vertices()[0];
 					glVertex2f(	prev.x - (poly.pos().x + poly.size().x / 2),
 								prev.y - (poly.pos().y + poly.size().y / 2));
 				glEnd();
 			glPopMatrix();
+			*/
 		}
 	};
 };

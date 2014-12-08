@@ -41,12 +41,17 @@ namespace graphics
 
 	struct Light
 	{
+		GLuint shadowmap_framebuffer;
+		GLuint shadowmap_texture_up, shadowmap_texture_right, shadowmap_texture_down, shadowmap_texture_left;
+		GLuint shadowmap_aspectratio;
 		math::vec3f position, color;
 		float range;
 		Shadow_Map *shadowmap;
 
 		/* init shadowmap and stuff */
-		void init(Shader *shad, math::mat4f *proj_matrix, math::mat4f *transl_matrix);
+		void init(Shader *shad, math::mat4f *proj_matrix);
+		void update_translation_matrix();
+		void destroy();
 	};
 
 	struct Rectangle
@@ -100,6 +105,7 @@ namespace graphics
 
 	void add_light(Light *l, char gen_framebuffer = 0);
 	void add_light_block_rect(math::mat2f *rect);
+	void add_light_block(int x, int y, char t);
 	void clear_light_block_rects();
 };
 

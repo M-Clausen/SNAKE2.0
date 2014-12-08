@@ -6,6 +6,8 @@
 
 #define WINDOW_WIDTH (16 * 3 * MAP_TILE_SIZE)
 #define WINDOW_HEIGHT (9 * 3 * MAP_TILE_SIZE)
+#define MAP_WIDTH (16 * 3)
+#define MAP_HEIGHT (9 * 3)
 #define WINDOW_TITLE "SNAKE 2.0"
 
 #define FPS 60

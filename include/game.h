@@ -40,7 +40,11 @@ class Game
 			map->game_list_index = maps.size() - 1;
 
 			if(cur)
+			{
 				current_map = maps[maps.size() - 1];
+				map->is_current = 1;
+				map->register_all_light_blocks();
+			}
 		}
 
 		void add_snake(Snake *snake, char cur)

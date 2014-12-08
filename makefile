@@ -29,6 +29,7 @@ OBJS 	= \
 ./obj/game.o \
 ./obj/shader.o \
 ./obj/shadow_map.o \
+./obj/light.o \
 ./obj/map.o \
 ./obj/keyboard.o \
 ./obj/snake.o \
@@ -57,6 +58,9 @@ obj/shader.o: src/graphics/shader.cpp $(HEADERS)
 	$(CC) $(CFLAGS) $< -o $@
 
 obj/shadow_map.o: src/graphics/shadow_map.cpp $(HEADERS)
+	$(CC) $(CFLAGS) $< -o $@
+
+obj/light.o: src/graphics/light.cpp $(HEADERS)
 	$(CC) $(CFLAGS) $< -o $@
 
 obj/game.o: src/game/game.cpp $(HEADERS)

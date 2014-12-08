@@ -68,11 +68,13 @@ class Map
 
 			basetile_outside.solid = 1;
 			basetile_outside.data = 1;
+			this->is_current = 0;
 		}
 
 	public:
 		int game_list_index;
 		math::vec4f food_color;
+		char is_current;
 
 		/* use window width/height for width and height of map */
 		Map()

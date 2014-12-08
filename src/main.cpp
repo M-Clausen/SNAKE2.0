@@ -60,6 +60,7 @@ int main(int argc, char **argv)
 	light2.color = math::vec3f(1.0f, 0.2f, 0.5f);
 	light.range = 3;
 	light2.range = 3;
+
 	graphics::add_light(&light, 1);
 	graphics::add_light(&light2, 1);
 
@@ -86,8 +87,8 @@ int main(int argc, char **argv)
 
 
 	printf("&map2: %p\n", &map2);
-	map.add_portals(portal1, portal2, 0);
-	map2.add_portals(portal1, portal2, 0);
+	//map.add_portals(portal1, portal2, 0);
+	//map2.add_portals(portal1, portal2, 0);
 
 	snake.add_element();
 	game.add_snake(&snake, 1);
@@ -113,7 +114,7 @@ int main(int argc, char **argv)
        	int fps_ticks = fps_timer.get_ticks();
        	float avg_fps = counted_frames / (fps_ticks / 1000.f);
 	    if(avg_fps > 2000000) avg_fps = 0;
-	    std::cout << "fps: " << avg_fps << std::endl;
+	    // std::cout << "fps: " << avg_fps << std::endl;
 
 
 	    if(!quit)

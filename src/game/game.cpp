@@ -15,40 +15,20 @@ void Game::init()
 	background.rect = math::mat2f(0.0f, 0.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
 	background.height = 0.0f;
 	this->snake_timer.start();
-	light.position = math::vec3f(0.0f, 0.0f, -0.03f);
+	light.position = math::vec3f(40, 500, -0.03f);
 	light.color = math::vec3f(1.0f, 1.0f, 1.0f);
 	light.range = 4;
-	graphics::add_light(&light, 1);
+	//graphics::add_light(&light, 1);
 }
 
 void Game::render()
 {
-	if(add_renderobjects == 1) 
+	if(add_renderobjects == 1)
 	{
 		std::cout << "adding objects" << std::endl;
 		graphics::draw::clear_rectangles();
 		graphics::draw::add_rectangle(&background);
 	}
-	
-	/*
-	for(int x = 0; x < this->current_map->get_width(); ++x)
-	{
-		for(int y = 0; y < this->current_map->get_height(); ++y)
-		{
-			math::mat2f background(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE, MAP_TILE_SIZE / 2, MAP_TILE_SIZE / 2);
-			graphics::draw::rectangle(background, bg_color);
-
-			background = math::mat2f(x * MAP_TILE_SIZE + MAP_TILE_SIZE / 2, y * MAP_TILE_SIZE, MAP_TILE_SIZE / 2, MAP_TILE_SIZE / 2);
-			graphics::draw::rectangle(background, bg_color);
-
-			background = math::mat2f(x * MAP_TILE_SIZE + MAP_TILE_SIZE / 2, y * MAP_TILE_SIZE + MAP_TILE_SIZE / 2, MAP_TILE_SIZE / 2, MAP_TILE_SIZE / 2);
-			graphics::draw::rectangle(background, bg_color);
-
-			background = math::mat2f(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE + MAP_TILE_SIZE / 2, MAP_TILE_SIZE / 2, MAP_TILE_SIZE / 2);
-			graphics::draw::rectangle(background, bg_color);
-		}
-	}
-	*/
 
 	this->current_map->render_base(add_renderobjects);
 	this->current_map->render_food(add_renderobjects);
@@ -56,7 +36,7 @@ void Game::render()
 	this->current_snake->render(add_renderobjects);
 
 	this->current_map->render_portals();
-	
+
 	this->current_map->render_grid();
 
 	add_renderobjects = 0;
@@ -65,15 +45,16 @@ void Game::render()
 bool Game::update()
 {
 	if(this->playing)
-	{
+	{   
 	    if(this->snake_timer.get_ticks() > 1000 - (this->snake_speed * 2 + 800) + 1 + 30)
 	    {
 	    	this->current_snake->move();
 	    	this->snake_timer.start();
+	    	light.position.x = this->current_snake->head.mapx * MAP_TILE_SIZE + MAP_TILE_SIZE / 2;
+	    	light.position.y = this->current_snake->head.mapy * MAP_TILE_SIZE + MAP_TILE_SIZE / 2;
+
+	    	graphics::clear_light_block_rects();
 	    }
-	    
-	    light.position.x = this->current_snake->head.mapx * MAP_TILE_SIZE + MAP_TILE_SIZE / 2;
-	    light.position.y = this->current_snake->head.mapy * MAP_TILE_SIZE + MAP_TILE_SIZE / 2;
 
 	    // std::cout << "snake_timer!" << std::endl;
 
@@ -167,7 +148,7 @@ bool Game::update()
 	    			printf("current_map: %p\n", this->current_map);
 	    			this->current_snake->set_map(this->current_map);
 	    		}
-	    		
+
 	    		switch(this->current_snake->get_direction())
 				{
 					case SNAKE_DIRECTION_UP:
@@ -195,15 +176,17 @@ bool Game::update()
 
 	    		this->current_snake->move();
 	    		this->snake_timer.start();
-
-	    		graphics::clear_light_block_rects();
-	    		this->current_map->register_all_light_blocks();
 	    		add_renderobjects = 1;
+
+
+	   	 		this->current_map->register_all_light_blocks();
 	    	}
 	    }
 	    // std::cout << "done update" << std::endl;
+
+	   	this->current_map->register_all_light_blocks();
 	}
-	
+
 	return true;
 }
 

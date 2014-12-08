@@ -50,6 +50,11 @@ namespace graphics
                 _id = compiled = 0;
             }
 
+            void prepare()
+            {
+                _id = glCreateProgram();
+            }
+
 
             /***********************************************************
              * Compile the shader from source code located in files.

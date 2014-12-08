@@ -10,10 +10,11 @@ uniform mat4 model_rotation;
 uniform mat4 projection;
 
 out vec4 vertexpos_gamespace;
-out vec4 vertexpos_pre_projection;
+out vec4 vertexpos_modelspace;
 out vec4 vertexpos_post_projection;
 
 uniform mat4 camera_translation;
+uniform mat4 camera_rotation;
 
 void main()
 {
@@ -23,7 +24,14 @@ void main()
 
 	vertexpos_gamespace = vertexpos;
 	vertexpos = scale * vertexpos;
-
 	vertexpos = model_translation * vertexpos;
+	vertexpos_modelspace = vertexpos;
+
+	vertexpos = camera_translation * vertexpos;
+	vertexpos = camera_rotation * vertexpos;
+
 	gl_Position = vertexpos;
+
+	// gl_Position = projection * vertexpos;
+	vertexpos_post_projection = vertexpos;
 }

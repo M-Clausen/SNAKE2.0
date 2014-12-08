@@ -73,20 +73,24 @@ namespace graphics
 
 		/* assumes shader is compiled */
 		this->posx_id = this->shader->getUniformLocation("shadowmap_rotation_matrices[0]");
-		this->negx_id = this->shader->getUniformLocation("shadowmap_rotation_matrices[0]");
-		this->posy_id = this->shader->getUniformLocation("shadowmap_rotation_matrices[0]");
-		this->negy_id = this->shader->getUniformLocation("shadowmap_rotation_matrices[0]");
-		this->posz_id = this->shader->getUniformLocation("shadowmap_rotation_matrices[0]");
-		this->negz_id = this->shader->getUniformLocation("shadowmap_rotation_matrices[0]");
+		this->negx_id = this->shader->getUniformLocation("shadowmap_rotation_matrices[1]");
+		this->posy_id = this->shader->getUniformLocation("shadowmap_rotation_matrices[2]");
+		this->negy_id = this->shader->getUniformLocation("shadowmap_rotation_matrices[3]");
+		this->posz_id = this->shader->getUniformLocation("shadowmap_rotation_matrices[4]");
+		this->negz_id = this->shader->getUniformLocation("shadowmap_rotation_matrices[5]");
+		printf("ids: %i, %i\n", this->posx_id, this->negx_id);
+		printf("texture id: %i\n", this->cubemap_texture);
 	}
 
 	void Shadow_Map::upload_rotation_matrices()
 	{
+		this->shader->bind();
 		glUniformMatrix4fv(this->posx_id, 1, GL_FALSE, &(rot_pos_x[0]));
 		glUniformMatrix4fv(this->negx_id, 1, GL_FALSE, &(rot_neg_x[0]));
 		glUniformMatrix4fv(this->posy_id, 1, GL_FALSE, &(rot_pos_y[0]));
 		glUniformMatrix4fv(this->negy_id, 1, GL_FALSE, &(rot_neg_y[0]));
 		glUniformMatrix4fv(this->posz_id, 1, GL_FALSE, &(rot_pos_z[0]));
 		glUniformMatrix4fv(this->negz_id, 1, GL_FALSE, &(rot_neg_z[0]));
+		this->shader->unbind();
 	};
 };
